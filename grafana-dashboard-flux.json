@@ -1,0 +1,401 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "InfluxDB Multi-Metrics Dashboard (Flux)",
+    "tags": ["influxdb", "flux"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "5s",
+    "schemaVersion": 37,
+    "version": 0,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "measurement",
+          "type": "custom",
+          "options": [
+            {
+              "text": "energy_consumption",
+              "value": "energy_consumption",
+              "selected": true
+            },
+            {
+              "text": "airSensors",
+              "value": "airSensors",
+              "selected": false
+            }
+          ],
+          "current": {
+            "text": "energy_consumption",
+            "value": "energy_consumption"
+          }
+        },
+        {
+          "name": "field",
+          "type": "custom",
+          "options": [
+            {
+              "text": "power_factor",
+              "value": "power_factor",
+              "selected": true
+            },
+            {
+              "text": "co",
+              "value": "co",
+              "selected": false
+            },
+            {
+              "text": "humidity",
+              "value": "humidity",
+              "selected": false
+            },
+            {
+              "text": "temperature",
+              "value": "temperature",
+              "selected": false
+            }
+          ],
+          "current": {
+            "text": "power_factor",
+            "value": "power_factor"
+          }
+        },
+        {
+          "name": "tag_key",
+          "type": "custom",
+          "options": [
+            {
+              "text": "building",
+              "value": "building",
+              "selected": true
+            },
+            {
+              "text": "sensor_id",
+              "value": "sensor_id",
+              "selected": false
+            }
+          ],
+          "current": {
+            "text": "building",
+            "value": "building"
+          }
+        },
+        {
+          "name": "tag_value",
+          "type": "custom",
+          "options": [
+            {
+              "text": "BuildingA",
+              "value": "BuildingA",
+              "selected": true
+            },
+            {
+              "text": "BuildingB",
+              "value": "BuildingB",
+              "selected": false
+            },
+            {
+              "text": "BuildingC",
+              "value": "BuildingC",
+              "selected": false
+            },
+            {
+              "text": "TLM0100",
+              "value": "TLM0100",
+              "selected": false
+            },
+            {
+              "text": "TLM0101",
+              "value": "TLM0101",
+              "selected": false
+            }
+          ],
+          "current": {
+            "text": "BuildingA",
+            "value": "BuildingA"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Primary Metric Time Series",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "influxdb",
+              "uid": "influxdb"
+            },
+            "query": "from(bucket: \"devbucket\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"${measurement}\")\n  |> filter(fn: (r) => r._field == \"${field}\")\n  |> filter(fn: (r) => r[\"${tag_key}\"] == \"${tag_value}\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"mean\")",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Current Values",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "influxdb",
+              "uid": "influxdb"
+            },
+            "query": "from(bucket: \"devbucket\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r._measurement == \"${measurement}\")\n  |> filter(fn: (r) => r._field == \"${field}\")\n  |> filter(fn: (r) => r[\"${tag_key}\"] == \"${tag_value}\")\n  |> last()\n  |> yield(name: \"current\")",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {},
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 3,
+        "title": "Statistics",
+        "type": "stat",
+        "gridPos": {
+          "h": 4,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "influxdb",
+              "uid": "influxdb"
+            },
+            "query": "from(bucket: \"devbucket\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"${measurement}\")\n  |> filter(fn: (r) => r._field == \"${field}\")\n  |> filter(fn: (r) => r[\"${tag_key}\"] == \"${tag_value}\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> yield(name: \"stats\")",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "mean",
+              "max",
+              "min"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "text": {},
+          "textMode": "auto"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Host Distribution",
+        "type": "piechart",
+        "gridPos": {
+          "h": 4,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "influxdb",
+              "uid": "influxdb"
+            },
+            "query": "from(bucket: \"devbucket\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"${measurement}\")\n  |> filter(fn: (r) => r._field == \"${field}\")\n  |> group(columns: [\"${tag_key}\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> mean()\n  |> group()\n  |> yield(name: \"distribution\")",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": [],
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "pieType": "pie",
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        }
+      }
+    ]
+  },
+  "message": "Flux compatible dashboard"
+}

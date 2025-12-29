@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局微调：字体、滚动条、focus 可见性 */
+@layer base {
+  html, body, #root { height: 100%; }
+  body { @apply bg-neutral-50 text-neutral-900 antialiased; }
+
+  /* 自定义滚动条样式 */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Firefox 滚动条样式 */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  /* 极简现代select样式 */
+  .modern-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+
+  .modern-select:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  }
+}
+
+/* 复用组件类，写一次到处用 */
+@layer components {
+  .btn { @apply inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition ring-1 ring-inset ring-black/5; }
+  .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400; }
+  .btn-subtle { @apply bg-brand-50 text-brand-700 hover:bg-brand-100; }
+  .btn-ghost { @apply hover:bg-black/5 text-neutral-700; }
+  .btn-danger { @apply bg-danger-600 text-white hover:bg-danger-700; }
+
+  .card { @apply bg-white rounded-2xl shadow-card border border-neutral-200; }
+  .card-header { @apply h-11 px-3 border-b border-neutral-200 flex items-center justify-between; }
+  .card-body { @apply min-h-[220px] bg-neutral-50/50; }
+  .card-footer { @apply h-9 px-3 border-t border-neutral-200 flex items-center justify-between text-xs text-neutral-600; }
+
+  .chip { @apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium; }
+  .chip-brand { @apply border-brand-200 bg-brand-50 text-brand-700; }
+  .chip-accent { @apply border-accent-200 bg-accent-50 text-accent-700; }
+  .chip-muted { @apply border-neutral-200 bg-white text-neutral-700; }
+
+  .topbar { @apply sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-neutral-200; }
+  .sidebar { @apply bg-white border-r border-neutral-200 w-80; }
+  .workbench { @apply p-3 grid grid-cols-12 gap-3; }
+  .statusbar { @apply h-7 flex items-center justify-between px-3 text-xs text-neutral-600; }
+
+  .drawer { @apply fixed inset-x-0 bottom-0 h-60 bg-white border-t border-neutral-200 shadow-lg flex flex-col; }
+  .drawer-head { @apply h-11 px-3 border-b border-neutral-200 flex items-center justify-between; }
+  .drawer-body { @apply flex-1 overflow-auto bg-neutral-50; }
+}
+
+/* 暗色模式（可选） */
+.dark body { @apply bg-neutral-900 text-neutral-100; }
+.dark .card { @apply bg-neutral-900 border-neutral-800; }
+.dark .card-header, .dark .card-footer { @apply border-neutral-800; }
+.dark .sidebar, .dark .topbar { @apply bg-neutral-900/80 border-neutral-800; }
+.dark .statusbar { @apply text-neutral-400; }
+.dark .btn-ghost { @apply text-neutral-200 hover:bg-white/5; }
+
+/* 现代化下拉选项样式 */
+.modern-dropdown option {
+  padding: 8px 12px;
+  background-color: white;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.modern-dropdown option:hover {
+  background-color: #f8fafc;
+  color: #7c3aed;
+}
+
+.modern-dropdown option:checked {
+  background-color: #7c3aed;
+  color: white;
+  font-weight: 500;
+}
+

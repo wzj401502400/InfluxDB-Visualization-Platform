@@ -1,0 +1,31 @@
+# 默认：所有文本统一提交为 LF
+* text=auto eol=lf
+
+# Windows 专用脚本保留 CRLF（避免在记事本/批处理里出问题）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# shell/构建脚本强制 LF（在 WSL/容器/CI 中最安全）
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# 常见二进制文件，禁止行尾转换/差异化
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.woff binary
+*.woff2 binary
+
+# 锁文件建议保持 LF，避免跨平台 diff 抖动
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+pnpm-lock.yaml text eol=lf
+

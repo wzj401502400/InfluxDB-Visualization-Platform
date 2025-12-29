@@ -1,0 +1,43 @@
+{
+"name": "nocodequery-dev",
+"dockerComposeFile": "compose.influxdb.yaml",
+"service": "app",
+"workspaceFolder": "/workspaces",
+"features": {
+"ghcr.io/devcontainers/features/node:1": {
+"version": "22"
+}
+},
+"customizations": {
+"vscode": {
+"extensions": [
+"dbaeumer.vscode-eslint",
+"esbenp.prettier-vscode",
+"GraphQL.vscode-graphql",
+"eamodio.gitlens"
+],
+"settings": {
+"editor.formatOnSave": true,
+"files.eol": "\n",
+"terminal.integrated.defaultProfile.linux": "bash"
+}
+}
+},
+"remoteUser": "vscode",
+"containerUser": "vscode",
+"updateContentCommand": "(cd server && npm install) && (cd client && npm install)",
+"postCreateCommand": "node -v && npm -v",
+"forwardPorts": [4000, 5173, 8086, 3001],
+"portsAttributes": {
+  "4000": { "label": "backend (Express)", "onAutoForward": "notify" },
+  "5173": { "label": "frontend (Vite)", "onAutoForward": "openBrowser" },
+  "8086": { "label": "influxdb", "onAutoForward": "notify" },
+  "3001": { "label": "grafana", "onAutoForward": "openBrowser" }
+},
+"mounts": [
+"source=vscode-npm-cache,target=/home/vscode/.npm,type=volume"
+],
+"remoteEnv": {
+"NODE_ENV": "development"
+}
+}

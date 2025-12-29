@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.35.0",
+    "cookie-parser": "^1.4.7",
+    "csv-parser": "^3.2.0",
+    "express": "^5.1.0",
+    "graphql": "^16.11.0",
+    "graphql-http": "^1.22.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "engines": { "node": ">=22" }
+}

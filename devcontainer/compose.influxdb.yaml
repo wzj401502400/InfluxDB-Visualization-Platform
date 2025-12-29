@@ -1,0 +1,59 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: devcontainer/Dockerfile
+    working_dir: /workspaces
+    command: bash -lc "npm ci || npm i && npm run dev"
+    environment:
+      - NODE_ENV=development
+      - GRAFANA_TOKEN=glsa_4NIr4mo7MNbSJ1AG1l1P2yom0L0LYObk_c5ac6917
+      - GRAFANA_INTERNAL_URL=http://grafana:3000
+      - GRAFANA_PUBLIC_URL=http://localhost:3001
+      - GRAFANA_ORG_ID=1
+    volumes:
+      - ..:/workspaces:cached
+      - /workspaces/node_modules   # 👈 容器内独立 node_modules
+    ports:
+      - "4000:4000"
+      - "5173:5173"
+    depends_on:
+      - influxdb
+      - grafana
+
+  influxdb:
+    image: influxdb:2.7
+    restart: unless-stopped
+    ports: ["8086:8086"]
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=dev
+      - DOCKER_INFLUXDB_INIT_PASSWORD=devpass123
+      - DOCKER_INFLUXDB_INIT_ORG=devorg
+      - DOCKER_INFLUXDB_INIT_BUCKET=devbucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=devtoken
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+
+  grafana:
+    image: grafana/grafana-oss:9.5.3
+    restart: unless-stopped
+    ports: ["3001:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SECURITY_COOKIE_SAMESITE=none
+      - GF_SECURITY_COOKIE_SECURE=false
+    depends_on: [influxdb]
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../grafana-custom.ini:/etc/grafana/conf.d/custom.ini
+      # - ./grafana-provisioning:/etc/grafana/provisioning  # 如需自动配置再开启
+
+volumes:
+  influxdb-data:
+  grafana-data:

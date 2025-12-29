@@ -1,0 +1,17 @@
+{
+  "name": "nocodequery",
+  "private": true,
+  "type": "module",
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c auto \"npm:dev -w server\" \"npm:dev -w client\"",
+    "start": "npm:start -w server",
+    "build:web": "npm:build -w client",
+    "preview:web": "npm:preview -w client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "engines": { "node": ">=22" }
+}
+

@@ -1,0 +1,55 @@
+# =========================
+# 通用
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+*.pid
+*.sock
+.eslintcache
+*.tsbuildinfo
+
+# =========================
+# 环境变量
+# =========================
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Node.js 依赖
+# =========================
+node_modules/
+
+# =========================
+# 前端 (Vite / React)
+# =========================
+dist/
+coverage/
+client/node_modules/
+# 构建产物和临时缓存
+client/.tmp/
+
+# =========================
+# 后端 (Express / GraphQL)
+# =========================
+build/
+server/coverage/
+server/.env
+server/.env.local
+
+# =========================
+# Docker / Dev Containers 数据卷
+# =========================
+influxdb-data/
+grafana-data/
+redis-data/
+data/
+
+# =========================
+# IDE / 临时
+# =========================
+.idea/
+*.swp
+csv21p.py
