@@ -57,16 +57,27 @@ Uses __VSCode Dev Containers__ + __Docker Compose__ to unify the development env
    
 > On first start, images will be built automatically and the app + influxdb + grafana containers will be launched.
 
+### 2. Configure environment variables
 
-### 2. Install dependencies
+Before starting, create the `.env` file in the `devcontainer/` folder:
+
+```bash
+cp devcontainer/.env.example devcontainer/.env
+```
+
+Then fill in `GRAFANA_TOKEN` with a valid Grafana Service Account Token. See `.env.example` for instructions on how to create one.
+
+> `.env` is git-ignored and will not be committed.
+
+### 3. Install dependencies
 Run inside the container only to ensure consistency.
 
 If you add new deps, declare them in package.json; rebuilding the Docker setup will pick them up.
 
-### 3. Start services
-3.1 Open Docker Desktop
+### 4. Start services
+4.1 Open Docker Desktop
 
-3.2 Open __compose.influxdb.yaml__ and click __Run all services__
+4.2 Open __compose.influxdb.yaml__ and click __Run all services__
 
 > Note: run docker compose -f devcontainer/compose.influxdb.yaml down -v in a terminal to remove all current configs if Docker misbehaves, then repeat the steps above to regenerate containers.
 
@@ -100,7 +111,7 @@ __Login token:__ devtoken
 
 ___
 
-### 4. Edit code
+### 5. Edit code
 
 Use VSCode on the host (Windows / Mac / Linux) to open and edit the code.
 
@@ -110,7 +121,7 @@ Frontend (Vite) → HMR auto-reload
 
 Backend (nodemon) → Auto-restart
 
-### 5. Commit code
+### 6. Commit code
 
 All dependencies are locked by the __root__ package-lock.json.
 
@@ -138,27 +149,11 @@ If different visualization types need different panels, add variables like VITE_
 
 If Grafana does not allow anonymous access, inject a login cookie at the reverse-proxy layer for the iframe, or use a minimally-privileged API Key instead.
 
-### 🔧 Grafana Authentication Setup
+### 🔧 Grafana Authentication
 
-The Grafana Service Account Token is pre-configured in `compose.influxdb.yaml` (`GRAFANA_TOKEN`).
+The backend communicates with Grafana via Basic Auth (`admin:admin`), pre-configured in `compose.influxdb.yaml`.
 
-On **first startup**, everything works out of the box — no manual steps needed.
-
-#### After `docker compose down -v` (volumes deleted)
-
-If you wipe volumes, the token in compose becomes invalid. Regenerate it:
-
-```bash
-# 1. Create Service Account + Token
-$headers = @{"Authorization"="Basic YWRtaW46YWRtaW4="; "Content-Type"="application/json"}
-$sa = Invoke-RestMethod -Method Post -Uri "http://localhost:3001/api/serviceaccounts" -Headers $headers -Body '{"name":"nocode-sa","role":"Admin"}'
-$token = Invoke-RestMethod -Method Post -Uri "http://localhost:3001/api/serviceaccounts/$($sa.id)/tokens" -Headers $headers -Body '{"name":"nocode-token"}'
-Write-Host "New token:" $token.key
-
-# 2. Update GRAFANA_TOKEN in devcontainer/compose.influxdb.yaml with the new token
-# 3. Restart app container
-docker compose -f devcontainer/compose.influxdb.yaml up -d app
-```
+`GRAFANA_TOKEN` is loaded from `devcontainer/.env` (see Step 2 above). If you wipe volumes (`docker compose down -v`), the token becomes invalid — recreate it via Grafana UI (Administration → Service Accounts → Add Token) and update the value in your `.env` file.
 
 ✅ __FAQs__
 
