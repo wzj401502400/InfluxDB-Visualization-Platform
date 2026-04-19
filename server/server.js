@@ -15,16 +15,16 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// 如果后面会放在反向代理/Nginx/CDN 后面，建议打开
+// If behind a reverse proxy (Nginx/CDN), consider enabling this
 // app.set('trust proxy', 1);
 
 app.use(express.json());
 sessionMiddleware(app);
 
-// 健康检查
+// Health check
 app.get('/healthz', (_req, res) => res.status(200).send('ok'));
 
-app.set('etag', false); // 禁止 ETag
+app.set('etag', false); // Disable ETag
 
 // REST
 app.use('/api', restRouter);
@@ -44,20 +44,20 @@ app.all('/graphql', createHandler({
   }),
 }));
 
-// 静态资源（public）
+// Static assets (public)
 app.use(express.static(path.join(__dirname, '../public')));
 
-// 如果将来用 Vite 构建前端并想由后端托管：
+// If using Vite to build frontend and want the backend to serve it:
 // app.use(express.static(path.join(__dirname, '../client/dist')));
 
-// 404 兜底（静态/接口都没命中时）
+// 404 fallback (when no static file or API route matched)
 app.use((req, res, _next) => {
-  // 若你要做单页应用前端路由，可在生产时把未知路由回退到 index.html
+  // For SPA frontend routing, you can fall back unknown routes to index.html in production
   // return res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   res.status(404).json({ ok: false, error: 'Not Found' });
 });
 
-// 错误处理中间件
+// Error handling middleware
 app.use((err, _req, res, _next) => {
   console.error('Unhandled error:', err);
   res.status(err.status || 500).json({
@@ -73,7 +73,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Health:   http://localhost:${PORT}/healthz`);
 });
 
-// 可选：导出 app 以便集成测试
+// Optional: export app for integration testing
 //export default app;
 
 

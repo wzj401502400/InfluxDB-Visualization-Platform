@@ -1,19 +1,19 @@
 // server/services/influx.js
 
-// 校验 token/URL 是否可用，并可顺便返回用户/组织信息
+// Validate whether the token/URL are usable; optionally returns user/org info
 export async function validateInflux({ url, token }) {
   const headers = { Authorization: `Token ${token}` };
   const me = await fetch(new URL('/api/v2/me', url).href, { headers });
   if (!me.ok) throw new Error('Invalid URL or Token');
 
-  // 再试 buckets 确认权限
+  // Also try listing buckets to confirm permissions
   const b = await fetch(new URL('/api/v2/buckets', url).href, { headers });
   if (!b.ok) throw new Error('Token cannot list buckets');
 
   return { ok: true };
 }
 
-// 列 buckets，返回统一形状
+// List buckets and return a normalized shape
 export async function listBuckets(sess) {
   const { influxUrl: url, token } = sess;
   const headers = { Authorization: `Token ${token}` };
@@ -21,18 +21,18 @@ export async function listBuckets(sess) {
   if (!r.ok) throw new Error('Failed to fetch buckets');
   const j = await r.json();
 
-  // 兼容不同返回结构，整理成 {id,name}
+  // Normalize different response structures into {id, name}
   const arr = j.buckets?.buckets ?? j.buckets ?? j?.buckets ?? j;
   return (arr || []).map(b => ({ id: b.id, name: b.name }));
 }
 
-// ========== 1) 执行 Flux ==========
+// ========== 1) Execute Flux ==========
 export async function runFlux(sess, flux, { org, prefer='json' } = {}) {
   const { influxUrl: url, token } = sess;
-  const orgName = org || sess.org; // 你登录时若保存了 org，可直接用
+  const orgName = org || sess.org; // Use saved org from login if available
   const baseHeaders = { Authorization: `Token ${token}` };
 
-  // 尝试 JSON（2.6+ 支持）；失败则回退 CSV
+  // Try JSON (2.6+ supported); fall back to CSV on failure
   if (prefer === 'json') {
     try {
       const u = new URL('/api/v2/query', url);
@@ -47,16 +47,16 @@ export async function runFlux(sess, flux, { org, prefer='json' } = {}) {
         })
       });
       if (r.ok) {
-        // Influx 的 JSON 会按表流式返回，这里统一摊平成行对象（只取 _time/_value 等常用列）
-        const j = await r.json(); // 结构依版本不同，这里兜底转为 rows
-        if (Array.isArray(j)) return j; // 有些代理层会直接把表格转成行数组
-        // 兜底：如果不是数组，直接返回原始 JSON，交给上层处理
+        // InfluxDB streams JSON by table; flatten into row objects (keeping common columns like _time/_value)
+        const j = await r.json(); // Structure varies by version; normalize to rows
+        if (Array.isArray(j)) return j; // Some proxies already convert tables to row arrays
+        // Fallback: if not an array, return raw JSON for upstream handling
         return j;
       }
     } catch (_) { /* fallthrough */ }
   }
 
-  // CSV 回退方案（稳定）
+  // CSV fallback (stable)
   const u = new URL('/api/v2/query', url);
   if (orgName) u.searchParams.set('org', orgName);
   const r = await fetch(u.href, {
@@ -69,8 +69,8 @@ export async function runFlux(sess, flux, { org, prefer='json' } = {}) {
   return csvToRows(text);
 }
 
-// ========== 2) schema 元数据（标签筛选会用到） ==========
-// 注意：这些都通过 runFlux 调用 schema.* 得到 _value 列
+// ========== 2) Schema metadata (used for tag filtering) ==========
+// Note: these all use runFlux to call schema.* and extract the _value column
 export async function listMeasurements(sess, { bucket, start='-30d' }) {
   const flux = `
 import "influxdata/influxdb/schema"
@@ -113,7 +113,7 @@ schema.tagValues(bucket: "${esc(bucket)}", tag: "${esc(tag)}"${pred ? `, predica
   return [...new Set(rows.map(r => r._value).filter(Boolean))];
 }
 
-// ========== 3) 更精准的 Flux 生成器 ==========
+// ========== 3) More precise Flux builder ==========
 export function buildFlux(spec) {
   const {
     bucket,
@@ -148,7 +148,7 @@ export function buildFlux(spec) {
       if (t.op === '==' || t.op === '!=') {
         return `${k} ${t.op} "${esc(String(t.value))}"`;
       }
-      throw new Error(`Unsupported tag op: ${t.op}`); // 如需正则，可再扩展 =~ /.../
+      throw new Error(`Unsupported tag op: ${t.op}`); // Extend with =~ /.../ for regex if needed
     }).join(' and ');
     lines.push(`|> filter(fn: (r) => ${expr})`);
   }

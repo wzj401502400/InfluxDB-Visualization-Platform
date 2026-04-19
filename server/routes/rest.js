@@ -26,7 +26,7 @@ router.get('/buckets', requireAuth, async (req, res) => {
 const normalizeBaseUrl = (rawUrl) => {
   try {
     const parsed = new URL(rawUrl);
-    // 只保留协议 + host[:port]
+    // Keep only protocol + host[:port]
     parsed.pathname = '';
     parsed.search = '';
     parsed.hash = '';
@@ -137,23 +137,23 @@ router.post('/query', requireAuth, async (req, res) => {
   r.body.pipe(res);
 });
 
-/*------------measurement和field------------ */
-// --- helpers: 转义 + 解析 Flux 响应（CSV 为主，JSON 兜底） ---
+/*------------ measurements and fields ------------ */
+// --- helpers: escape + parse Flux response (CSV primary, JSON fallback) ---
 function escapeFluxString(s = "") {
   return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
-// 更健壮的 CSV/JSON 解析：兼容 text/csv、application/csv、带 charset；
-// 支持简单的带引号 CSV；容错：空响应/204、找不到列名时尝试常见备选。
+// More robust CSV/JSON parsing: handles text/csv, application/csv, with charset;
+// Supports simple quoted CSV; fault-tolerant: empty response/204, falls back to common column names.
 async function parseFluxResponseToValuesArray(r) {
   const status = r.status;
   const ct = (r.headers.get('content-type') || '').toLowerCase();
   const isCsv = ct.includes('text/csv') || ct.includes('application/csv');
 
-  // 204 或空 body 直接返回空数组
+  // 204 or empty body: return empty array
   if (status === 204) return [];
 
-  // -------- CSV 分支 --------
+  // -------- CSV branch --------
   if (isCsv) {
     const csv = await r.text();
     if (!r.ok) {
@@ -161,11 +161,11 @@ async function parseFluxResponseToValuesArray(r) {
       err.status = status;
       throw err;
     }
-    // 过滤空行和注释
+    // Filter out empty lines and annotation rows
     const rows = csv.split(/\r?\n/).filter(Boolean).filter(l => !l.startsWith('#'));
     if (rows.length === 0) return [];
 
-    // 轻量 CSV 行解析（支持双引号包裹与逗号）
+    // Lightweight CSV line parser (supports quoted fields and commas)
     const splitCsvLine = (line) => {
       const out = [];
       let cur = '';
@@ -173,7 +173,7 @@ async function parseFluxResponseToValuesArray(r) {
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
         if (ch === '"') {
-          // 处理转义双引号 ""
+          // Handle escaped double-quotes ""
           if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
           else { inQ = !inQ; }
         } else if (ch === ',' && !inQ) {
@@ -188,11 +188,11 @@ async function parseFluxResponseToValuesArray(r) {
     };
 
     const header = splitCsvLine(rows[0]);
-    // 优先顺序：_value -> value -> name
+    // Priority order: _value -> value -> name
     let colIdx = header.indexOf('_value');
     if (colIdx === -1) colIdx = header.indexOf('value');
     if (colIdx === -1) colIdx = header.indexOf('name');
-    if (colIdx === -1) return []; // 没有可用列
+    if (colIdx === -1) return []; // No usable column found
 
     const out = new Set();
     for (let i = 1; i < rows.length; i++) {
@@ -203,7 +203,7 @@ async function parseFluxResponseToValuesArray(r) {
     return Array.from(out).sort();
   }
 
-  // -------- JSON 分支（兜底）--------
+  // -------- JSON branch (fallback) --------
   if (ct.includes('application/json')) {
     const j = await r.json();
     if (!r.ok) {
@@ -236,7 +236,7 @@ async function parseFluxResponseToValuesArray(r) {
     return [];
   }
 
-  // 其它类型：读文本并报错（便于调试）
+  // Other content types: read text and throw error (for debugging)
   const txt = await r.text();
   const err = new Error(txt || `Unexpected content-type: ${ct || 'unknown'}`);
   err.status = status || 500;
@@ -244,8 +244,8 @@ async function parseFluxResponseToValuesArray(r) {
 }
 
 /**
- * 执行 Flux 并把结果规整成字符串数组（取 _value）
- * 默认 CSV，若传 accept='json' 则请求 JSON（保留灵活性）
+ * Execute Flux and normalize results to a string array (extracting _value)
+ * Defaults to CSV; pass accept='json' to request JSON (for flexibility)
  */
 async function runFluxReturnValuesArray({ influxUrl, token, org, flux, accept = 'csv' }) {
   const url = new URL('/api/v2/query', influxUrl);
@@ -262,7 +262,7 @@ async function runFluxReturnValuesArray({ influxUrl, token, org, flux, accept = 
   return parseFluxResponseToValuesArray(r);
 }
 
-// --- helpers: bucket/org 解析（id 优先，name 次之；处理重名冲突） ---
+// --- helpers: bucket/org resolution (prefer id, fallback to name; handle name conflicts) ---
 async function fetchAllBuckets({ influxUrl, token }) {
   const r = await fetch(new URL('/api/v2/buckets', influxUrl).href, {
     headers: { Authorization: `Token ${token}`, Accept: 'application/json' }
@@ -273,11 +273,11 @@ async function fetchAllBuckets({ influxUrl, token }) {
 }
 
 /**
- * 解析 bucket → { bucketId, bucketName, orgID }
- * - 若传 bucketId：直接按 id 命中（全局唯一）
- * - 若只传 bucket（name）：
- *    · 若也传 org：仅在该 org 下按 name 匹配；
- *    · 否则跨 org 查 name；0 命中 → 404；>1 命中 → 409（重名冲突）
+ * Resolve bucket -> { bucketId, bucketName, orgID }
+ * - If bucketId is given: match by id (globally unique)
+ * - If only bucket (name) is given:
+ *    - If org is also provided: match by name within that org;
+ *    - Otherwise search across orgs; 0 matches -> 404; >1 matches -> 409 (name conflict)
  */
 async function resolveBucket({ influxUrl, token, bucketId, bucketName, org }) {
   const list = await fetchAllBuckets({ influxUrl, token });
@@ -317,14 +317,14 @@ async function resolveBucket({ influxUrl, token, bucketId, bucketName, org }) {
 
 /**
  * GET /api/measurements?[bucketId=ID]|[bucket=NAME][&org=ORG][&format=json|csv]
- * 返回：["weather","cpu","mem", ...]
+ * Returns: ["weather","cpu","mem", ...]
  */
 router.get('/measurements', requireAuth, async (req, res) => {
   try {
     const { influxUrl, token } = req.auth;
     const { bucketId, bucket: bucketName, org, format } = req.query || {};
 
-    // 解析 bucket 与 org（不要求前端传 org）
+    // Resolve bucket and org (frontend doesn't need to pass org)
     const { bucketName: bn, orgID } = await resolveBucket({ influxUrl, token, bucketId, bucketName, org });
 
     const flux = `
@@ -344,7 +344,7 @@ schema.measurements(bucket: "${escapeFluxString(bn)}")
 
 /**
  * GET /api/fields?[bucketId=ID]|[bucket=NAME][&org=ORG]&measurement=MEAS[&format=json|csv]
- * 返回：["temperature","usage_user", ...]
+ * Returns: ["temperature","usage_user", ...]
  */
 router.get('/fields', requireAuth, async (req, res) => {
   try {
@@ -353,12 +353,12 @@ router.get('/fields', requireAuth, async (req, res) => {
     const meas = String(measurement || '').trim();
     if (!meas) return res.status(400).json({ ok:false, error:'measurement required' });
 
-    // 解析 bucket/org
+    // Resolve bucket/org
     const { bucketName: bn, orgID } = await resolveBucket({ influxUrl, token, bucketId, bucketName, org });
 
     const accept = format === 'json' ? 'json' : 'csv';
 
-    // 1) 首选：schema.measurementFieldKeys
+    // 1) Preferred: schema.measurementFieldKeys
     const flux1 = `
 import "influxdata/influxdb/schema"
 schema.measurementFieldKeys(
@@ -370,7 +370,7 @@ schema.measurementFieldKeys(
 
     let fields = await runFluxReturnValuesArray({ influxUrl, token, org: orgID, flux: flux1, accept });
 
-    // 2) 兼容：schema.fieldKeys |> filter
+    // 2) Fallback: schema.fieldKeys |> filter
     if (!fields.length) {
       const flux2 = `
 import "influxdata/influxdb/schema"
@@ -381,9 +381,9 @@ schema.fieldKeys(bucket: "${escapeFluxString(bn)}")
       fields = await runFluxReturnValuesArray({ influxUrl, token, org: orgID, flux: flux2, accept });
     }
 
-    // 3) 兜底：数据路径（可选 start，默认 -30d，必要时可传 -100y）
+    // 3) Last resort: data path (optional start, default -30d; use -100y for broader coverage)
     if (!fields.length) {
-      const win = String(start || '-30d'); // 建议改成默认 -100y 更保险
+      const win = String(start || '-30d'); // Consider changing default to -100y for safety
       const flux3 = `
 from(bucket: "${escapeFluxString(bn)}")
   |> range(start: ${win})
@@ -395,7 +395,7 @@ from(bucket: "${escapeFluxString(bn)}")
 `.trim();
       fields = await runFluxReturnValuesArray({ influxUrl, token, org: orgID, flux: flux3, accept });
 
-      // 如果默认窗口太短导致空，可让前端传 start=-100y 再试
+      // If default window is too short, frontend can pass start=-100y to retry
       if (!fields.length && win !== '-100y') {
         const flux3b = flux3.replace(`range(start: ${win})`, 'range(start: -100y)');
         fields = await runFluxReturnValuesArray({ influxUrl, token, org: orgID, flux: flux3b, accept });
@@ -446,7 +446,7 @@ router.get('/tag-values', requireAuth, async (req, res) => {
     if (measurement) pieces.push(`r._measurement == "${escapeFluxString(measurement)}"`);
     if (field)       pieces.push(`r._field == "${escapeFluxString(field)}"`);
 
-    // 处理级联过滤条件
+    // Handle cascade filter conditions
     if (filters) {
       try {
         const cascadeFilters = JSON.parse(filters);
@@ -454,10 +454,10 @@ router.get('/tag-values', requireAuth, async (req, res) => {
           cascadeFilters.forEach(filter => {
             if (filter.key && filter.values && filter.values.length > 0) {
               if (filter.values.length === 1) {
-                // 单个值：直接比较
+                // Single value: direct comparison
                 pieces.push(`r["${escapeFluxString(filter.key)}"] == "${escapeFluxString(filter.values[0])}"`);
               } else {
-                // 多个值：使用contains
+                // Multiple values: use contains
                 const valueList = filter.values.map(v => `"${escapeFluxString(v)}"`).join(', ');
                 pieces.push(`contains(value: r["${escapeFluxString(filter.key)}"], set: [${valueList}])`);
               }
@@ -604,14 +604,14 @@ const ensureGrafanaDatasource = async () => {
   return cachedGrafanaDatasourcePromise;
 };
 
-// POST /api/query/spec  （结构化查询）
+// POST /api/query/spec  (structured query)
 router.post('/query/spec', requireAuth, async (req, res) => {
   try {
     const { influxUrl, token } = req.auth;
     const { bucketId, bucket: bucketName, org, spec, dry } = req.body || {};
     if (!spec?.time?.start) return res.status(400).json({ ok:false, error:'spec.time.start required' });
 
-    // 解析真实 bucket 与 org
+    // Resolve actual bucket and org
     const { bucketName: bn, orgID } = await resolveBucket({ influxUrl, token, bucketId, bucketName, org });
 
     const flux = buildFluxFromSpec({ ...spec, bucket: bn });
@@ -620,7 +620,7 @@ router.post('/query/spec', requireAuth, async (req, res) => {
 
     const rows = await runFluxReturnValuesArray({
       influxUrl, token, org: orgID, flux,
-      accept: 'json'  // 想用 CSV 也可以改成 'csv'
+      accept: 'json'  // Change to 'csv' if preferred
     });
     res.json({ flux, rows });
   } catch (e) {
@@ -671,29 +671,29 @@ router.post('/create-filtered-dashboard', async (req, res) => {
       }
     }
 
-    // 构建Flux查询
+    // Build Flux query
     let fluxQuery;
 
     if (isCrossMeasurement) {
-      // 对于跨measurement查询，直接使用提供的customFlux
+      // For cross-measurement queries, use the provided customFlux directly
       fluxQuery = customFlux;
       console.log('Using custom Flux for cross-measurement query:', customFlux);
     } else {
-      // 单measurement查询，使用原有逻辑
+      // Single measurement query, using original logic
       fluxQuery = `from(bucket: "devbucket")
   |> range(start: ${timeRange})
   |> filter(fn: (r) => r._measurement == "${measurement}")
   |> filter(fn: (r) => r._field == "${field}")`;
 
-      // 添加tag过滤 - 使用AND逻辑组合多个条件
+      // Add tag filters - combine multiple conditions with AND logic
       if (tags && tags.length > 0) {
         const conditions = tags.map(tag => {
           if (tag.values && tag.values.length > 0) {
             if (tag.values.length === 1) {
-              // 单个值：直接比较，标签值必须加引号
+              // Single value: direct comparison, tag values must be quoted
               return `r["${tag.key}"] == "${tag.values[0]}"`;
             } else {
-              // 多个值：使用contains，标签值必须加引号
+              // Multiple values: use contains, tag values must be quoted
               const valuesList = tag.values.map(v => `"${v}"`).join(', ');
               return `contains(value: r["${tag.key}"], set: [${valuesList}])`;
             }
@@ -706,7 +706,7 @@ router.post('/create-filtered-dashboard', async (req, res) => {
         }
       }
 
-      // 添加聚合
+      // Add aggregation
       if (visualizationType === 'timeseries') {
         fluxQuery += `\n  |> aggregateWindow(every: ${aggregateWindow}, fn: mean, createEmpty: false)\n  |> yield(name: "mean")`;
       } else if (visualizationType === 'stat' || visualizationType === 'gauge') {
@@ -716,7 +716,7 @@ router.post('/create-filtered-dashboard', async (req, res) => {
       }
     }
 
-    // 生成唯一的仪表板ID和标题
+    // Generate unique dashboard ID and title
     const timestamp = Date.now();
     const dashboardUid = `filtered-${visualizationType}-${timestamp}`;
 
@@ -741,7 +741,7 @@ router.post('/create-filtered-dashboard', async (req, res) => {
       console.log('Using default title:', dashboardTitle);
     }
 
-    // 构建面板配置
+    // Build panel config
     const grafanaDatasource = await ensureGrafanaDatasource();
 
     let panelConfig = {
@@ -762,7 +762,7 @@ router.post('/create-filtered-dashboard', async (req, res) => {
       gridPos: { h: 12, w: 24, x: 0, y: 0 }
     };
 
-    // 添加特定类型的配置
+    // Add type-specific config
     if (visualizationType === 'stat') {
       panelConfig.options = { textMode: 'auto', colorMode: 'value' };
     } else if (visualizationType === 'gauge') {
@@ -770,7 +770,7 @@ router.post('/create-filtered-dashboard', async (req, res) => {
       panelConfig.fieldConfig.defaults.max = 100;
     }
 
-    // 创建Grafana仪表板
+    // Create Grafana dashboard
     const grafanaApiUrl = new URL('/api/dashboards/db', grafanaApiBaseUrl || 'http://localhost:3001');
     const grafanaResponse = await fetch(grafanaApiUrl, {
       method: 'POST',

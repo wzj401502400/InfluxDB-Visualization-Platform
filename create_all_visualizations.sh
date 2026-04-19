@@ -4,13 +4,13 @@ GRAFANA_URL="http://localhost:3001"
 GRAFANA_USER="admin"
 GRAFANA_PASS="admin"
 
-echo "🚀 创建所有可视化类型的Grafana Dashboard..."
+echo "🚀 Creating Grafana Dashboards for all visualization types..."
 
-# 创建各种可视化类型的dashboard
+# Create dashboards for various visualization types
 visualization_types=("piechart" "heatmap" "histogram")
 
 for viz_type in "${visualization_types[@]}"; do
-    echo "创建 ${viz_type} dashboard..."
+    echo "Creating ${viz_type} dashboard..."
 
     case "$viz_type" in
         "piechart")
@@ -113,7 +113,7 @@ for viz_type in "${visualization_types[@]}"; do
             ;;
     esac
 
-    # 创建dashboard
+    # Create dashboard
     curl -X POST \
         "$GRAFANA_URL/api/dashboards/db" \
         -H "Content-Type: application/json" \
@@ -192,11 +192,11 @@ for viz_type in "${visualization_types[@]}"; do
             \"overwrite\": true
         }"
 
-    echo "✅ ${viz_type} dashboard 创建完成"
+    echo "✅ ${viz_type} dashboard created successfully"
 done
 
-echo -e "\n🎉 所有可视化类型的Dashboard创建完成！"
-echo "现在支持的可视化类型："
+echo -e "\n🎉 All visualization type Dashboards created successfully!"
+echo "Supported visualization types:"
 echo "- Time Series: http://localhost:3001/d/dynamic-dashboard-timeseries"
 echo "- Stat: http://localhost:3001/d/dynamic-dashboard-stat"
 echo "- Gauge: http://localhost:3001/d/dynamic-dashboard-gauge"

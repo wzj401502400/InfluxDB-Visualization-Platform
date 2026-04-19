@@ -8,13 +8,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 主色：天蓝（可随时换一套，不用全局替换类名）
+        // Primary: sky blue (swap palette anytime without renaming classes)
         brand: colors.sky,
-        // 次强调：深一点，防止全界面“同一蓝”
+        // Accent: slightly deeper to avoid a monotone blue UI
         accent: colors.indigo,
-        // 中性色：冷一点的灰，配蓝更和谐
+        // Neutral: cool-toned gray that pairs well with blue
         neutral: colors.zinc,
-        // 语义色
+        // Semantic colors
         success: colors.emerald,
         warning: colors.amber,
         danger: colors.rose,

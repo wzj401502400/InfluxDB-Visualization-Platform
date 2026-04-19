@@ -13,11 +13,11 @@ import {
 import { buildQuerySpecFromUI, sanitizeFlux } from './utils/flux';
 import { getAggregateWindow } from './config/grafana';
 
-/* ============ 顶部栏 ============ */
+/* ============ Top Bar ============ */
 function Topbar({ loggedIn, onLoginOpen, onLogout }) {
   return (
     <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-zinc-200">
-      {/* 细彩条：品牌色点睛 */}
+      {/* Thin accent bar: brand color highlight */}
       <div className="h-0.5 bg-sky-600" />
       <div className="h-14 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -46,7 +46,7 @@ function Topbar({ loggedIn, onLoginOpen, onLogout }) {
   );
 }
 
-/* ============ 树节点组件 ============ */
+/* ============ Tree Node Component ============ */
 function TreeNode({ node, level = 0, onDragStart, expandedNodes, onToggle }) {
   const getNodeIcon = (type) => {
     switch (type) {
@@ -169,14 +169,14 @@ function TreeNode({ node, level = 0, onDragStart, expandedNodes, onToggle }) {
 }
 
 
-/* ============ Tag值选择器组件 ============ */
+/* ============ Tag Value Selector Component ============ */
 function TagValueSelector({ tagName, tagKey, buckets, onValueChange, selectedValue }) {
   const [availableValues, setAvailableValues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // 点击外部关闭下拉框
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -187,14 +187,14 @@ function TagValueSelector({ tagName, tagKey, buckets, onValueChange, selectedVal
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 获取tag的可选值
+  // Load available tag values
   useEffect(() => {
     const loadTagValues = async () => {
       if (!buckets || buckets.length === 0) return;
 
       setLoading(true);
       try {
-        // 尝试从第一个bucket获取tag values
+        // Try to get tag values from the first bucket
         const bucketId = buckets[0].id;
         const values = await fetchTagValues(bucketId, tagKey, {
           start: '-30d'
@@ -285,7 +285,7 @@ function TagValueSelector({ tagName, tagKey, buckets, onValueChange, selectedVal
   );
 }
 
-/* ============ 保存的Hierarchy查询表单 ============ */
+/* ============ Saved Hierarchy Query Form ============ */
 function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelection, setHierarchyQuerySelection, range, showFluxInWorkbench, setShowFluxInWorkbench, setHierarchyFluxText, hierarchyVisualizationType }) {
   console.log('SavedHierarchyQueryForm render - savedHierarchy:', savedHierarchy);
   console.log('SavedHierarchyQueryForm render - buckets:', buckets);
@@ -297,15 +297,15 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
   const [copied, setCopied] = useState(false);
   const [aggregateFunction, setAggregateFunction] = useState('mean');
 
-  // 从savedHierarchy中提取信息
+  // Extract info from savedHierarchy
   const extractHierarchyInfo = () => {
     if (!savedHierarchy || savedHierarchy.length === 0) return null;
 
     console.log('Analyzing savedHierarchy:', savedHierarchy);
 
-    // 分析hierarchy结构，提取所有信息
+    // Analyze hierarchy structure, extract all info
     let bucketInfo = null;
-    const measurementInfos = new Map(); // 改为Map来存储多个measurements
+    const measurementInfos = new Map(); // Use Map to store multiple measurements
     const fieldNodes = [];
     const tagNodes = [];
 
@@ -329,7 +329,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
           fieldNodes.push({
             name: node.data?.field || node.name,
             originalName: node.name,
-            measurement: currentMeasurement // 记录字段来自哪个measurement
+            measurement: currentMeasurement // Record which measurement this field belongs to
           });
           break;
         case 'tag':
@@ -345,10 +345,10 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
       }
     }
 
-    // 分析所有节点
+    // Analyze all nodes
     savedHierarchy.forEach(node => analyzeNode(node));
 
-    // 从字段中推断measurements（如果没有明确的measurement节点）
+    // Infer measurements from fields (if no explicit measurement nodes)
     if (measurementInfos.size === 0 && fieldNodes.length > 0) {
       fieldNodes.forEach(field => {
         if (field.measurement && !measurementInfos.has(field.measurement)) {
@@ -359,10 +359,10 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
       });
     }
 
-    // 为没有measurement信息的字段分配默认measurements
+    // Assign default measurements to fields without measurement info
     fieldNodes.forEach(field => {
       if (!field.measurement) {
-        // 根据字段名推测来自哪个measurement
+        // Guess which measurement a field belongs to based on field name
         if (['actual_temp', 'fan_speed', 'power_consumption', 'setpoint_temp'].includes(field.name)) {
           field.measurement = 'hvac_systems';
           if (!measurementInfos.has('hvac_systems')) {
@@ -377,7 +377,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
       }
     });
 
-    // 如果没有找到bucket，尝试从其他来源获取
+    // If no bucket found, try to get from other sources
     if (!bucketInfo && buckets && buckets.length > 0) {
       bucketInfo = {
         id: buckets[0].id,
@@ -385,7 +385,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
       };
     }
 
-    // 转换measurementInfos为数组
+    // Convert measurementInfos to array
     const measurements = Array.from(measurementInfos.values());
 
     console.log('Final extracted info:', {
@@ -398,7 +398,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
     return {
       bucket: bucketInfo,
       measurements: measurements,
-      measurement: measurements[0], // 保持向后兼容性
+      measurement: measurements[0], // Maintain backward compatibility
       fields: fieldNodes,
       tags: tagNodes,
       isValid: fieldNodes.length > 0
@@ -407,11 +407,11 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
 
   const hierarchyInfo = extractHierarchyInfo();
 
-  // 添加状态来管理bucket和measurement选择（仅在自动识别失败时使用）
+  // Add state for bucket/measurement selection (used only when auto-detection fails)
   const [manualBucket, setManualBucket] = useState('');
   const [manualMeasurement, setManualMeasurement] = useState('');
 
-  // 生成Flux查询
+  // Generate Flux query
   const generateFluxQuery = () => {
     console.log('generateFluxQuery called');
     console.log('hierarchyInfo:', hierarchyInfo);
@@ -431,7 +431,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
       return '';
     }
 
-    // 按measurement分组字段
+    // Group fields by measurement
     const fieldsByMeasurement = new Map();
     hierarchyInfo.fields.forEach(field => {
       if (selectedFields.includes(field.name)) {
@@ -445,7 +445,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
 
     console.log('Fields by measurement:', fieldsByMeasurement);
 
-    // 如果只有一个measurement，使用简单查询
+    // If only one measurement, use a simple query
     if (fieldsByMeasurement.size === 1) {
       const [measurement, fields] = fieldsByMeasurement.entries().next().value;
 
@@ -453,13 +453,13 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
   |> range(start: ${localRange})
   |> filter(fn: (r) => r._measurement == "${measurement}")`;
 
-      // 添加field过滤
+      // Add field filter
       if (fields.length > 0) {
         flux += `
   |> filter(fn: (r) => ${fields.map(field => `r._field == "${field}"`).join(' or ')})`;
       }
 
-      // 添加tag过滤
+      // Add tag filters
       Object.entries(tagFilters).forEach(([tagKey, tagValue]) => {
         if (tagValue && tagValue !== '') {
           flux += `
@@ -475,20 +475,20 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
       return flux;
     }
 
-    // 跨measurement查询：使用union
+    // Cross-measurement query: use union
     const queries = [];
     fieldsByMeasurement.forEach((fields, measurement) => {
       let subQuery = `from(bucket: "${bucketName}")
   |> range(start: ${localRange})
   |> filter(fn: (r) => r._measurement == "${measurement}")`;
 
-      // 添加field过滤
+      // Add field filter
       if (fields.length > 0) {
         subQuery += `
   |> filter(fn: (r) => ${fields.map(field => `r._field == "${field}"`).join(' or ')})`;
       }
 
-      // 添加tag过滤
+      // Add tag filters
       Object.entries(tagFilters).forEach(([tagKey, tagValue]) => {
         if (tagValue && tagValue !== '') {
           subQuery += `
@@ -502,7 +502,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
       queries.push(subQuery);
     });
 
-    // 使用union合并查询
+    // Use union to merge queries
     const flux = `union(tables: [
 ${queries.map(query => `  (${query})`).join(',\n')}
 ])
@@ -520,7 +520,7 @@ ${queries.map(query => `  (${query})`).join(',\n')}
       console.log('Generated flux:', flux);
 
       setLocalFluxText(flux);
-      setHierarchyFluxText(flux);  // 同时设置主应用程序的hierarchyFluxText
+      setHierarchyFluxText(flux);  // Also set the main app's hierarchyFluxText
       console.log('Local flux text set:', flux);
 
       // Also trigger Grafana visualization
@@ -607,7 +607,7 @@ ${queries.map(query => `  (${query})`).join(',\n')}
   return (
     <div className="mt-4 bg-white rounded-2xl shadow-sm border border-gray-200 p-4 space-y-4">
 
-      {/* Step 1: 按层级展示 - 第一层是Tags */}
+      {/* Step 1: Display by hierarchy - first layer is Tags */}
       {hierarchyInfo.tags.length > 0 && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -636,7 +636,7 @@ ${queries.map(query => `  (${query})`).join(',\n')}
         </div>
       )}
 
-      {/* Step 2: 自动显示检测到的信息 */}
+      {/* Step 2: Auto-display detected info */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-gray-500"></div>
@@ -718,7 +718,7 @@ ${queries.map(query => `  (${query})`).join(',\n')}
         />
       </div>
 
-      {/* Step 4: Field选择 */}
+      {/* Step 4: Field selection */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-orange-500"></div>
@@ -746,7 +746,7 @@ ${queries.map(query => `  (${query})`).join(',\n')}
         </div>
       </div>
 
-      {/* Step 4: 按钮 */}
+      {/* Step 4: Buttons */}
       <div className="pt-2 border-t">
         <div className="flex gap-2">
           <button
@@ -790,7 +790,7 @@ ${queries.map(query => `  (${query})`).join(',\n')}
   );
 }
 
-// 辅助函数：查找指定类型的节点
+// Helper: find a node of the specified type
 function findNodeByType(node, type) {
   if (node.type === type) return node;
   if (node.children) {
@@ -802,7 +802,7 @@ function findNodeByType(node, type) {
   return null;
 }
 
-// 辅助函数：查找所有指定类型的节点
+// Helper: find all nodes of the specified type
 function findAllNodesByType(node, type) {
   const results = [];
 
@@ -819,11 +819,11 @@ function findAllNodesByType(node, type) {
   return results;
 }
 
-/* ============ Hierarchy Flux查询生成 ============ */
+/* ============ Hierarchy Flux Query Generation ============ */
 function generateHierarchyFlux(selectedNode, customHierarchy, range, buckets, aggregateFunction = 'mean') {
   if (!selectedNode) return '';
 
-  // 根据选中节点类型生成不同的查询
+  // Generate different queries based on selected node type
   const bucketId = selectedNode.data?.bucketId || getNodeBucketId(selectedNode, customHierarchy);
   const bucketName = buckets.find(b => b.id === bucketId)?.name;
   if (!bucketName) return '';
@@ -831,7 +831,7 @@ function generateHierarchyFlux(selectedNode, customHierarchy, range, buckets, ag
   let flux = `from(bucket: "${bucketName}")
   |> range(start: ${range})`;
 
-  // 根据节点类型添加过滤条件
+  // Add filter conditions based on node type
   const measurement = selectedNode.data?.measurement || getNodeMeasurement(selectedNode, customHierarchy);
   if (measurement) {
     flux += `
@@ -839,11 +839,11 @@ function generateHierarchyFlux(selectedNode, customHierarchy, range, buckets, ag
   }
 
   if (selectedNode.type === 'field') {
-    // 选中field时，查询该field的数据
+    // When a field is selected, query that field's data
     flux += `
   |> filter(fn: (r) => r._field == "${selectedNode.data.field}")`;
 
-    // 添加该field下的所有tag过滤条件
+    // Add all tag filter conditions under this field
     const tagFilters = getTagFiltersForField(selectedNode, customHierarchy);
     if (tagFilters.length > 0) {
       tagFilters.forEach(filter => {
@@ -852,13 +852,13 @@ function generateHierarchyFlux(selectedNode, customHierarchy, range, buckets, ag
       });
     }
   } else if (selectedNode.type === 'tag') {
-    // 选中tag时，查询该tag约束下的所有fields
+    // When a tag is selected, query all fields under that tag constraint
     const fieldNames = getNodeFields(selectedNode, customHierarchy);
     if (fieldNames.length > 0) {
       flux += `
   |> filter(fn: (r) => ${fieldNames.map(name => `r._field == "${name}"`).join(' or ')})`;
 
-      // 添加tag过滤条件
+      // Add tag filter condition
       const tagKey = selectedNode.data?.tagKey || selectedNode.data?.tag;
       if (tagKey) {
         flux += `
@@ -866,7 +866,7 @@ function generateHierarchyFlux(selectedNode, customHierarchy, range, buckets, ag
       }
     }
   } else if (selectedNode.type === 'bucket' || selectedNode.type === 'measurement') {
-    // 选中bucket或measurement时，查询层级下的所有fields
+    // When bucket or measurement is selected, query all fields in hierarchy
     const allFields = getAllFieldsInHierarchy(selectedNode, customHierarchy);
     if (allFields.length > 0) {
       const fieldNames = allFields.map(f => f.data.field);
@@ -875,7 +875,7 @@ function generateHierarchyFlux(selectedNode, customHierarchy, range, buckets, ag
     }
   }
 
-  // 添加聚合和时间窗口
+  // Add aggregation and time window
   flux += `
   |> aggregateWindow(every: ${getAggregateWindow(range)}, fn: ${aggregateFunction}, createEmpty: false)
   |> yield(name: "${aggregateFunction}")`;
@@ -883,10 +883,10 @@ function generateHierarchyFlux(selectedNode, customHierarchy, range, buckets, ag
   return flux;
 }
 
-// 辅助函数：获取field的tag过滤条件
+// Helper: get tag filter conditions for a field
 function getTagFiltersForField(fieldNode, hierarchy) {
   const filters = [];
-  // 递归向上查找tag节点
+  // Recursively search upward for tag nodes
   function findTagAncestors(nodes, targetId, currentPath = []) {
     for (const node of nodes) {
       if (node.id === targetId) {
@@ -913,7 +913,7 @@ function getTagFiltersForField(fieldNode, hierarchy) {
   return filters;
 }
 
-// 辅助函数：获取tag的父级fields
+// Helper: get parent fields of a tag
 function getParentFields(tagNode, hierarchy) {
   const fields = [];
   function findInHierarchy(nodes) {
@@ -932,7 +932,7 @@ function getParentFields(tagNode, hierarchy) {
   return fields;
 }
 
-// 辅助函数：获取层级下的所有fields
+// Helper: get all fields in a hierarchy
 function getAllFieldsInHierarchy(rootNode, hierarchy) {
   const fields = [];
   function collectFields(nodes) {
@@ -946,7 +946,7 @@ function getAllFieldsInHierarchy(rootNode, hierarchy) {
     }
   }
 
-  // 如果是根节点，从其子节点开始收集
+  // If this is a root node, start collecting from its children
   if (rootNode.children) {
     collectFields(rootNode.children);
   }
@@ -954,11 +954,11 @@ function getAllFieldsInHierarchy(rootNode, hierarchy) {
   return fields;
 }
 
-// 辅助函数：从层级节点获取measurement
+// Helper: get measurement from a hierarchy node
 function getNodeMeasurement(node, hierarchy) {
   if (node.data?.measurement) return node.data.measurement;
 
-  // 如果是tag节点，查找父级field的measurement
+  // If this is a tag node, look up the parent field's measurement
   if (node.type === 'tag') {
     const parentFields = getParentFields(node, hierarchy);
     if (parentFields.length > 0) {
@@ -966,7 +966,7 @@ function getNodeMeasurement(node, hierarchy) {
     }
   }
 
-  // 如果是field节点，从子节点推断measurement
+  // If this is a field node, infer measurement from children
   if (node.type === 'field' && node.children) {
     for (const child of node.children) {
       if (child.data?.measurement) {
@@ -978,15 +978,15 @@ function getNodeMeasurement(node, hierarchy) {
   return null;
 }
 
-// 辅助函数：从层级节点获取field
+// Helper: get field from a hierarchy node
 function getNodeField(node, hierarchy) {
   if (node.type === 'field') {
     return node.data?.field || node.name;
   }
 
-  // 如果是tag节点，获取第一个子级field
+  // If this is a tag node, get the first child field
   if (node.type === 'tag') {
-    // 首先尝试查找直接子节点中的field
+    // First try to find a field among direct children
     if (node.children) {
       const fieldChild = node.children.find(child => child.type === 'field');
       if (fieldChild) {
@@ -994,14 +994,14 @@ function getNodeField(node, hierarchy) {
       }
     }
 
-    // 然后尝试查找父级field（向上查找）
+    // Then try to find a parent field (search upward)
     const parentFields = getParentFields(node, hierarchy);
     if (parentFields.length > 0) {
       return parentFields[0].data?.field || parentFields[0].name;
     }
   }
 
-  // 如果是bucket或measurement，查找第一个field
+  // If bucket or measurement, find the first field
   if (node.type === 'bucket' || node.type === 'measurement') {
     const allFields = getAllFieldsInHierarchy(node, hierarchy);
     if (allFields.length > 0) {
@@ -1012,7 +1012,7 @@ function getNodeField(node, hierarchy) {
   return null;
 }
 
-// 辅助函数：从层级节点获取多个fields（用于多字段可视化）
+// Helper: get multiple fields from a hierarchy node (for multi-field visualization)
 function getNodeFields(node, hierarchy) {
   const fields = [];
 
@@ -1020,7 +1020,7 @@ function getNodeFields(node, hierarchy) {
     return [node.data?.field || node.name];
   }
 
-  // 如果是tag节点，获取所有子级fields
+  // If tag node, get all child fields
   if (node.type === 'tag') {
     if (node.children) {
       const fieldChildren = node.children.filter(child => child.type === 'field');
@@ -1028,7 +1028,7 @@ function getNodeFields(node, hierarchy) {
     }
   }
 
-  // 如果是bucket或measurement，查找所有fields
+  // If bucket or measurement, find all fields
   if (node.type === 'bucket' || node.type === 'measurement') {
     const allFields = getAllFieldsInHierarchy(node, hierarchy);
     return allFields.map(field => field.data?.field || field.name);
@@ -1037,11 +1037,11 @@ function getNodeFields(node, hierarchy) {
   return fields;
 }
 
-// 辅助函数：从层级节点获取bucketId
+// Helper: get bucketId from a hierarchy node
 function getNodeBucketId(node, hierarchy) {
   if (node.data?.bucketId) return node.data.bucketId;
 
-  // 递归向上查找bucketId
+  // Recursively search upward for bucketId
   function findBucketId(nodes) {
     for (const n of nodes) {
       if (n.data?.bucketId) return n.data.bucketId;
@@ -1056,19 +1056,19 @@ function getNodeBucketId(node, hierarchy) {
   return findBucketId(hierarchy);
 }
 
-// 辅助函数：从层级节点获取tags
+// Helper: get tags from a hierarchy node
 function getNodeTags(node, hierarchy) {
   const tags = [];
 
   if (node.type === 'tag') {
-    // 如果选中的是tag，包含该tag
+    // If the selected node is a tag, include it
     tags.push({
       key: node.data?.tagKey || node.name,
       values: [node.name]
     });
   }
 
-  // 查找该节点的所有tag祖先
+  // Find all tag ancestors of this node
   function findTagAncestors(nodes, targetId, path = []) {
     for (const n of nodes) {
       const currentPath = [...path, n];
@@ -1098,32 +1098,32 @@ function getNodeTags(node, hierarchy) {
   return tags;
 }
 
-/* ============ 数据关系验证 ============ */
+/* ============ Data Relationship Validation ============ */
 function validateDataRelationship(parentNode, childNode, treeData) {
-  // 如果是root level，总是允许
+  // If root level, always allow
   if (!parentNode) return true;
 
   const parentData = parentNode.data;
   const childData = childNode.data;
 
-  // 根据父节点类型验证子节点是否可以放置
+  // Validate whether a child node can be placed under a parent based on type
   switch (parentNode.type) {
     case 'bucket':
-      // bucket下只能放该bucket下的measurement
+      // Only measurements belonging to this bucket are allowed
       return childNode.type === 'measurement' &&
              childData.bucketId === parentData.id;
 
     case 'measurement':
-      // measurement下只能放该measurement下的field
+      // Only fields belonging to this measurement are allowed
       return childNode.type === 'field' &&
              childData.bucketId === parentData.bucketId &&
              childData.measurement === parentData.measurement;
 
     case 'field':
-      // field下只能放该field下实际存在的tag
+      // Only tags that actually exist under this field are allowed
       if (childNode.type !== 'tag') return false;
 
-      // 在tree data中查找该field节点，检查tag是否存在
+      // Find this field in the tree data and check if the tag exists
       const findFieldInTree = (nodes) => {
         for (const node of nodes) {
           if (node.type === 'field' &&
@@ -1143,24 +1143,24 @@ function validateDataRelationship(parentNode, childNode, treeData) {
       const fieldNode = findFieldInTree(treeData);
       if (!fieldNode) return false;
 
-      // 检查tag是否在该field下存在
+      // Check if the tag exists under this field
       return fieldNode.children.some(tag =>
         tag.type === 'tag' &&
         tag.data.tagKey === childData.tagKey
       );
 
     case 'tag':
-      // tag下可以放field，但需要验证该field确实包含此tag
+      // A field can be placed under a tag, but must verify the field actually has this tag
       if (childNode.type !== 'field') return false;
 
-      // 在tree data中查找该field节点，检查是否包含此tag
+      // Find this field in the tree data and check if it contains this tag
       const findFieldWithTag = (nodes) => {
         for (const node of nodes) {
           if (node.type === 'field' &&
               node.data.bucketId === childData.bucketId &&
               node.data.measurement === childData.measurement &&
               node.data.field === childData.field) {
-            // 检查该field下是否有此tag
+            // Check if this field has the tag
             return node.children.some(tag =>
               tag.type === 'tag' &&
               tag.data.tagKey === parentData.tagKey
@@ -1181,7 +1181,7 @@ function validateDataRelationship(parentNode, childNode, treeData) {
   }
 }
 
-/* ============ 数据树组件 ============ */
+/* ============ Data Tree Component ============ */
 function DataTree({ buckets = [], onDragStart, onTreeDataUpdate }) {
   console.log('DataTree render - buckets:', buckets);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
@@ -1189,7 +1189,7 @@ function DataTree({ buckets = [], onDragStart, onTreeDataUpdate }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 构建树形数据结构
+  // Build tree data structure
   const buildTreeData = async () => {
     console.log('DataTree buildTreeData called, buckets:', buckets);
     if (!buckets || !buckets.length) {
@@ -1213,7 +1213,7 @@ function DataTree({ buckets = [], onDragStart, onTreeDataUpdate }) {
           children: []
         };
 
-        // 获取该bucket下的measurements
+        // Fetch measurements under this bucket
         try {
           const measurements = await fetchMeasurements(bucket.id);
 
@@ -1226,7 +1226,7 @@ function DataTree({ buckets = [], onDragStart, onTreeDataUpdate }) {
               children: []
             };
 
-            // 获取该measurement下的fields和tags
+            // Fetch fields and tags under this measurement
             try {
               const [fields, tagKeys] = await Promise.all([
                 fetchFields(bucket.id, measurement),
@@ -1246,7 +1246,7 @@ function DataTree({ buckets = [], onDragStart, onTreeDataUpdate }) {
                   children: []
                 };
 
-                // 将tags作为field的子节点
+                // Add tags as children of the field
                 for (const tagKey of filteredTagKeys) {
                   const tagNode = {
                     id: `tag-${bucket.id}-${measurement}-${field}-${tagKey}`,
@@ -1374,7 +1374,7 @@ function DataTree({ buckets = [], onDragStart, onTreeDataUpdate }) {
   );
 }
 
-/* ============ 子区域拖拽区 ============ */
+/* ============ Child Drop Zone ============ */
 function ChildDropZone({ parentId, level = 0, onDrop, onReorganize }) {
   const [dragOver, setDragOver] = useState(false);
 
@@ -1399,12 +1399,12 @@ function ChildDropZone({ parentId, level = 0, onDrop, onReorganize }) {
       const dragData = JSON.parse(e.dataTransfer.getData('text/plain'));
 
       if (dragData.isHierarchyNode) {
-        // 处理层级内部的重新组织 - 直接添加到父节点的子列表末尾
+        // Handle internal hierarchy reorganization - append to parent's child list
         if (onReorganize) {
           onReorganize(dragData.id, parentId, 'on');
         }
       } else {
-        // 处理从左边树拖拽过来的新节点
+        // Handle new node dragged from the left tree
         onDrop(parentId, dragData);
       }
     } catch (err) {
@@ -1442,7 +1442,7 @@ function ChildDropZone({ parentId, level = 0, onDrop, onReorganize }) {
   );
 }
 
-/* ============ 自定义层级节点 ============ */
+/* ============ Custom Hierarchy Node ============ */
 function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMoveDown, onReorganize, treeData, onNodeSelect, selectedNodeId }) {
   const [dragOver, setDragOver] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -1478,7 +1478,7 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
     e.stopPropagation();
     const dragData = {
       ...node,
-      isHierarchyNode: true // 标记这是来自层级内部的节点
+      isHierarchyNode: true // Mark this as a node from within the hierarchy
     };
     e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
   };
@@ -1491,13 +1491,13 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
     const y = e.clientY - rect.top;
     const height = rect.height;
 
-    // 根据鼠标位置确定drop位置
+    // Determine drop position based on mouse location
     if (y < height * 0.2) {
-      setDropPosition('parent'); // 上方20%变成parent层级
+      setDropPosition('parent'); // Top 20%: become parent level
     } else if (y > height * 0.8) {
-      setDropPosition('after'); // 下方20%变成after sibling
+      setDropPosition('after'); // Bottom 20%: become sibling after
     } else {
-      setDropPosition('on'); // 中间60%变成子节点
+      setDropPosition('on'); // Middle 60%: become child
     }
 
     setDragOver(true);
@@ -1522,21 +1522,21 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
       const dragData = JSON.parse(e.dataTransfer.getData('text/plain'));
 
       if (dragData.isHierarchyNode) {
-        // 处理层级内部的重新组织
+        // Handle internal hierarchy reorganization
         if (onReorganize) {
           onReorganize(dragData.id, node.id, position);
         }
       } else {
-        // 处理从左边树拖拽过来的新节点
+        // Handle new node dragged from the left tree
         if (position === 'on') {
-          // 验证数据关系
+          // Validate data relationship
           if (!validateDataRelationship(node, dragData, treeData)) {
             alert(`Invalid relationship: ${dragData.type} "${dragData.name}" cannot be placed under ${node.type} "${node.name}"`);
             return;
           }
           onDrop(node.id, dragData);
         } else {
-          // 对于parent/after位置，需要特殊处理
+          // For parent/after positions, need special handling
           if (onReorganize) {
             onReorganize(null, node.id, position, dragData);
           }
@@ -1580,10 +1580,10 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
 
   return (
     <div className="select-none relative">
-      {/* 树形连接线 */}
+      {/* Tree connection lines */}
       {level > 0 && (
         <div className="absolute left-0 top-0 w-full h-full pointer-events-none">
-          {/* 水平线 */}
+          {/* Horizontal line */}
           <div
             className="absolute h-px bg-gray-300 top-1/2"
             style={{
@@ -1591,7 +1591,7 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
               width: '12px'
             }}
           />
-          {/* 垂直线 - 连接到上级 */}
+          {/* Vertical line - connect to parent */}
           <div
             className="absolute w-px bg-gray-300"
             style={{
@@ -1600,7 +1600,7 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
               height: '50%'
             }}
           />
-          {/* 垂直线 - 连接到下级 */}
+          {/* Vertical line - connect to children */}
           {node.children && node.children.length > 0 && (
             <div
               className="absolute w-px bg-gray-300"
@@ -1614,7 +1614,7 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
         </div>
       )}
 
-      {/* 父级节点的垂直连接线 */}
+      {/* Parent node vertical connection line */}
       {level === 0 && node.children && node.children.length > 0 && (
         <div className="absolute left-0 top-0 w-full h-full pointer-events-none">
           <div
@@ -1645,13 +1645,13 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={(e) => {
-          // 只有在不是拖拽操作时才触发选择
-          if (e.detail === 1 && onNodeSelect) { // 单击
+          // Only trigger selection when not dragging
+          if (e.detail === 1 && onNodeSelect) { // single click
             onNodeSelect(node);
           }
         }}
       >
-        {/* 层级标签 */}
+        {/* Level label */}
         <div className="flex items-center">
           {node.children && node.children.length > 0 && (
             <button
@@ -1677,12 +1677,12 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
           </span>
         </div>
 
-        {/* 节点内容 */}
+        {/* Node content */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="text-sm font-medium truncate text-gray-900">{node.name}</span>
         </div>
 
-        {/* 操作按钮 */}
+        {/* Action buttons */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => onRemove(node.id)}
@@ -1695,13 +1695,13 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
           </button>
         </div>
 
-        {/* 拖拽提示 */}
+        {/* Drag hint */}
         {dragOver && (
           <div className="absolute inset-0 border-2 border-dashed border-sky-400 rounded-lg pointer-events-none"></div>
         )}
       </div>
 
-      {/* 子节点区域 */}
+      {/* Children area */}
       {expanded && node.children && node.children.length > 0 && (
         <div className="mt-1 space-y-1">
           {node.children.map((child) => (
@@ -1725,7 +1725,7 @@ function CustomHierarchyNode({ node, level = 0, onDrop, onRemove, onMoveUp, onMo
   );
 }
 
-/* ============ 自定义层级构建器 ============ */
+/* ============ Custom Hierarchy Builder ============ */
 function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, onNodeSelect, selectedNodeId }) {
   const [dragOver, setDragOver] = useState(false);
   const [nextId, setNextId] = useState(1);
@@ -1748,7 +1748,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
       const nodeData = JSON.parse(e.dataTransfer.getData('text/plain'));
 
       if (nodeData.isHierarchyNode) {
-        // 如果是从层级内部拖拽的节点，忽略（应该通过重新组织功能处理）
+        // If dragged from within hierarchy, ignore (should be handled by reorganize)
         return;
       }
 
@@ -1765,7 +1765,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
   };
 
   const handleNestedDrop = (parentId, nodeData) => {
-    // 查找父节点
+    // Find parent node
     const findParentNode = (nodes, id) => {
       for (const node of nodes) {
         if (node.id === id) return node;
@@ -1779,7 +1779,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
 
     const parentNode = findParentNode(customHierarchy, parentId);
 
-    // 验证数据关系
+    // Validate data relationship
     if (!validateDataRelationship(parentNode, nodeData, treeData)) {
       alert(`Invalid relationship: ${nodeData.type} "${nodeData.name}" cannot be placed under ${parentNode?.type} "${parentNode?.name}"`);
       return;
@@ -1834,12 +1834,12 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
       for (let i = 0; i < nodes.length; i++) {
         if (nodes[i].id === nodeId) {
           if (i > 0) {
-            // 可以上移：交换当前节点和上一个节点
+            // Can move up: swap with previous node
             const newNodes = [...nodes];
             [newNodes[i], newNodes[i - 1]] = [newNodes[i - 1], newNodes[i]];
             return newNodes;
           }
-          return nodes; // 已经是第一个，无法上移
+          return nodes; // Already first, cannot move up
         }
 
         if (nodes[i].children && nodes[i].children.length > 0) {
@@ -1862,12 +1862,12 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
       for (let i = 0; i < nodes.length; i++) {
         if (nodes[i].id === nodeId) {
           if (i < nodes.length - 1) {
-            // 可以下移：交换当前节点和下一个节点
+            // Can move down: swap with next node
             const newNodes = [...nodes];
             [newNodes[i], newNodes[i + 1]] = [newNodes[i + 1], newNodes[i]];
             return newNodes;
           }
-          return nodes; // 已经是最后一个，无法下移
+          return nodes; // Already last, cannot move down
         }
 
         if (nodes[i].children && nodes[i].children.length > 0) {
@@ -1889,7 +1889,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
     const newHierarchy = [...customHierarchy];
 
     if (newNodeData) {
-      // 从左边拖拽过来的新节点，插入到指定位置
+      // New node dragged from left tree, insert at specified position
       const newNode = {
         id: `custom-${nextId}`,
         ...newNodeData,
@@ -1903,7 +1903,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
             if (pos === 'after') {
               nodes.splice(i + 1, 0, newNode);
             } else if (pos === 'parent') {
-              // 新节点成为目标节点的父节点
+              // New node becomes the parent of the target node
               const targetNode = nodes.splice(i, 1)[0];
               newNode.children = [targetNode];
               nodes.splice(i, 0, newNode);
@@ -1922,17 +1922,17 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
       return;
     }
 
-    // 层级内部重新组织
+    // Internal hierarchy reorganization
     if (!dragNodeId || dragNodeId === targetNodeId) return;
 
-    // 特殊处理：让拖拽的节点成为目标节点的父节点
+    // Special handling: make dragged node the parent of target node
     if (position === 'parent') {
       let draggedNode = null;
       let targetNode = null;
       let targetParent = null;
       let targetIndex = -1;
 
-      // 1. 找到并移除拖拽的节点
+      // 1. Find and remove the dragged node
       const removeDraggedNode = (nodes) => {
         for (let i = 0; i < nodes.length; i++) {
           if (nodes[i].id === dragNodeId) {
@@ -1946,7 +1946,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
         return false;
       };
 
-      // 2. 找到并移除目标节点
+      // 2. Find and remove the target node
       const removeTargetNode = (nodes, parent = null) => {
         for (let i = 0; i < nodes.length; i++) {
           if (nodes[i].id === targetNodeId) {
@@ -1967,13 +1967,13 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
 
       if (!draggedNode || !targetNode) return;
 
-      // 3. 创建新的父子关系：draggedNode 作为父节点，targetNode 作为子节点
+      // 3. Create new parent-child relationship: draggedNode as parent, targetNode as child
       const newParentNode = {
         ...draggedNode,
         children: [...(draggedNode.children || []), targetNode]
       };
 
-      // 4. 将新的父节点插入到原目标节点的位置
+      // 4. Insert the new parent node at the original target position
       if (targetParent) {
         targetParent.children.splice(targetIndex, 0, newParentNode);
       } else {
@@ -1984,8 +1984,8 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
       return;
     }
 
-    // 普通的重新组织逻辑
-    // 1. 找到并移除拖拽的节点
+    // Normal reorganization logic
+    // 1. Find and remove the dragged node
     let draggedNode = null;
     const removeDraggedNode = (nodes) => {
       for (let i = 0; i < nodes.length; i++) {
@@ -2003,7 +2003,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
     removeDraggedNode(newHierarchy);
     if (!draggedNode) return;
 
-    // 2. 根据position插入到目标位置
+    // 2. Insert at target position based on position
     const insertDraggedNode = (nodes, targetId, pos) => {
       for (let i = 0; i < nodes.length; i++) {
         if (nodes[i].id === targetId) {
@@ -2012,7 +2012,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
           } else if (pos === 'after') {
             nodes.splice(i + 1, 0, draggedNode);
           } else if (pos === 'on') {
-            // 成为子节点
+            // Become a child node
             if (!nodes[i].children) {
               nodes[i].children = [];
             }
@@ -2057,7 +2057,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
         </div>
       </div>
 
-      {/* 根级别拖拽区域 */}
+      {/* Root-level drop zone */}
       <div
         className={`border-2 border-dashed rounded-xl p-6 transition-all min-h-[300px] ${
           dragOver
@@ -2120,7 +2120,7 @@ function CustomHierarchyBuilder({ customHierarchy, onUpdateHierarchy, treeData, 
   );
 }
 
-/* ============ 自定义下拉组件 ============ */
+/* ============ Custom Dropdown Component ============ */
 function CustomDropdown({
   value,
   onChange,
@@ -2134,7 +2134,7 @@ function CustomDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // 点击外部区域关闭下拉框
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -2227,7 +2227,7 @@ function CustomDropdown({
   );
 }
 
-/* ============ Tag选择器组件 ============ */
+/* ============ Tag Selector Component ============ */
 function TagSelector({
   tagKeys,
   selectedTags,
@@ -2242,16 +2242,16 @@ function TagSelector({
     const updated = [...selectedTags];
     updated[index] = { ...updated[index], values };
 
-    // 级联更新：重新加载后续tag的可用值
+    // Cascade update: reload available values for subsequent tags
     if (index < selectedTags.length - 1) {
       try {
         setStatus('Updating cascade filters...');
 
-        // 重新计算后续每个tag的可用值
+        // Recalculate available values for each subsequent tag
         for (let i = index + 1; i < selectedTags.length; i++) {
           const tagToUpdate = updated[i];
 
-          // 构建级联过滤条件：只使用前面已选择的tag值
+          // Build cascade filter conditions: only use previously selected tag values
           const cascadeFilters = updated
             .slice(0, i)
             .filter(tag => tag.values && tag.values.length > 0)
@@ -2266,7 +2266,7 @@ function TagSelector({
             filters: cascadeFilters
           });
 
-          // 清除不再有效的选择值
+          // Clear selections that are no longer valid
           const validValues = tagToUpdate.values.filter(v => newAllValues.includes(v));
 
           updated[i] = {
@@ -2293,10 +2293,10 @@ function TagSelector({
 
   return (
     <div className="space-y-3">
-      {/* 已选择的tag */}
+      {/* Selected tags */}
       {selectedTags.map((tag, index) => (
         <div key={tag.key} className="relative">
-          {/* 级联连接线 */}
+          {/* Cascade connector line */}
           {index > 0 && (
             <div className="absolute -top-3 left-1/2 -ml-1 flex flex-col items-center">
               <div className="w-0.5 h-3 bg-gradient-to-b from-purple-300 to-purple-300"></div>
@@ -2307,7 +2307,7 @@ function TagSelector({
           <div className="border border-purple-300 bg-purple-50/50 shadow-sm rounded-xl p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              {/* 级联指示器 */}
+              {/* Cascade indicator */}
               <div className="flex items-center gap-1">
                 {index > 0 && (
                   <div className="flex items-center text-purple-600">
@@ -2323,14 +2323,14 @@ function TagSelector({
               </div>
 
               <div className="flex items-center gap-1">
-                {/* 选择状态指示器 */}
+                {/* Selection status indicator */}
                 {tag.values.length > 0 && (
                   <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800">
                     {tag.values.length} selected
                   </span>
                 )}
 
-                {/* 可用选项指示器 */}
+                {/* Available options indicator */}
                 <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-purple-50 text-purple-600 border border-purple-200">
                   {tag.allValues.length} options
                 </span>
@@ -2351,7 +2351,7 @@ function TagSelector({
               <div className="text-gray-500 text-center py-4">No values available</div>
             ) : (
               <>
-                {/* 控制按钮 */}
+                {/* Control buttons */}
                 <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50/50">
                   <span className="text-xs text-gray-600">
                     {tag.values.length} of {tag.allValues.length} selected
@@ -2374,7 +2374,7 @@ function TagSelector({
                   </div>
                 </div>
 
-                {/* 选项列表 */}
+                {/* Options list */}
                 <div className="px-3 py-2 max-h-[160px] overflow-y-auto custom-scrollbar">
                   <div className="space-y-1">
                     {tag.allValues.map((value, i) => (
@@ -2400,7 +2400,7 @@ function TagSelector({
           </div>
         </div>
 
-          {/* 级联影响提示 */}
+          {/* Cascade effect hint */}
           {index < selectedTags.length - 1 && tag.values.length > 0 && (
             <div className="mt-2 text-xs text-purple-600 bg-purple-50 rounded-lg px-2 py-1">
               <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2416,7 +2416,7 @@ function TagSelector({
   );
 }
 
-/* ============ 左侧查询构建器 ============ */
+/* ============ Left Query Builder ============ */
 function LeftQueryBuilder({
   buckets, activeBucketId, setActiveBucketId,
   measurements, selectedMeasurement, setSelectedMeasurement,
@@ -2448,7 +2448,7 @@ function LeftQueryBuilder({
     try {
       setStatus(`Loading values for tag "${key}"...`);
 
-      // 构建级联过滤条件：使用已选择的tag值来过滤新tag的可用值
+      // Build cascade filter conditions: use selected tag values to filter available values for the new tag
       const cascadeFilters = selectedTags
         .filter(tag => tag.values && tag.values.length > 0)
         .map(tag => ({
@@ -2459,7 +2459,7 @@ function LeftQueryBuilder({
       const allValues = await fetchTagValues(activeBucketId, key, {
         measurement: selectedMeasurement,
         field: selectedField,
-        filters: cascadeFilters // 传递级联过滤条件
+        filters: cascadeFilters // Pass cascade filter conditions
       });
 
       const newTag = {
@@ -2611,7 +2611,7 @@ function LeftQueryBuilder({
                 </div>
               </div>
 
-              {/* Step 2: Filter区域 */}
+              {/* Step 2: Filter area */}
               {activeSection === 'filter' && (
                 <div className="border border-purple-200 rounded-xl bg-purple-50/30 p-3">
                   <div className="flex items-center justify-between mb-3">
@@ -2629,7 +2629,7 @@ function LeftQueryBuilder({
                     </button>
                   </div>
 
-                  {/* 已选择的filters */}
+                  {/* Selected filters */}
                   {console.log('Rendering filters, selectedTags.length:', selectedTags.length, 'selectedTags:', selectedTags)}
                   {selectedTags.length > 0 && (
                     <div className="mb-3">
@@ -2646,7 +2646,7 @@ function LeftQueryBuilder({
                   )}
 
 
-                  {/* 可用的Tag Keys */}
+                  {/* Available Tag Keys */}
                   {tagKeys.filter(key =>
                     !['_measurement', '_field', '_start', '_stop', '_time', '_value'].includes(key) &&
                     !selectedTags.some(tag => tag.key === key)
@@ -2680,7 +2680,7 @@ function LeftQueryBuilder({
                 </div>
               )}
 
-              {/* Step 3: Group区域 */}
+              {/* Step 3: Group area */}
               {activeSection === 'group' && (
                 <div className="border border-yellow-200 rounded-xl bg-yellow-50/30 p-3">
                   <div className="flex items-center justify-between mb-3">
@@ -2706,7 +2706,7 @@ function LeftQueryBuilder({
                         <div className="text-gray-500 text-center py-4">No grouping options available</div>
                       ) : (
                         <>
-                          {/* 控制按钮 */}
+                          {/* Control buttons */}
                           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-yellow-50/50">
                             <span className="text-xs text-gray-600">
                               {groupBy.length} of {groupOptions.length} selected
@@ -2729,7 +2729,7 @@ function LeftQueryBuilder({
                             </div>
                           </div>
 
-                          {/* 选项列表 */}
+                          {/* Options list */}
                           <div className="px-3 py-2 max-h-[120px] overflow-y-auto custom-scrollbar">
                             <div className="space-y-1">
                               {groupOptions.map((col, i) => (
@@ -2761,7 +2761,7 @@ function LeftQueryBuilder({
                 </div>
               )}
 
-              {/* 当前选择的摘要 */}
+              {/* Current selection summary */}
               {(selectedTags.length > 0 || groupBy.length > 0) && (
                 <div className="p-3 border border-zinc-200 rounded-xl bg-white">
                   <div className="text-sm font-medium text-zinc-700 mb-2">Query Summary</div>
@@ -2848,7 +2848,7 @@ function LeftQueryBuilder({
   );
 }
 
-/* ============ 直接数据图表面板 ============ */
+/* ============ Direct Data Chart Panel ============ */
 function GrafanaPanel({
   measurement,
   selectedField,
@@ -3089,7 +3089,7 @@ function GrafanaPanel({
     return `iframe-${measurement || 'cross'}-${selectedFieldsKey}-${activeFiltersKey}-${visualizationType}-${range}`;
   }, [measurement, selectedFieldsKey, activeFiltersKey, visualizationType, range]);
 
-  // 创建动态dashboard的函数
+  // Function to create a dynamic dashboard
   const createDynamicDashboard = async () => {
     // For cross-measurement queries, we need at least selectedFields
     // For regular queries, we need measurement and selectedField
@@ -3158,7 +3158,7 @@ function GrafanaPanel({
   };
 
 
-  // 为所有查询创建动态dashboard，确保时间范围和聚合正确
+  // Create dynamic dashboard for all queries, ensuring time range and aggregation are correct
   useEffect(() => {
     if (isEditingTitle) return;
     const shouldCreateDashboard = isCrossMeasurement
@@ -3185,7 +3185,7 @@ function GrafanaPanel({
     isEditingTitle
   ]);
 
-  // 调试信息
+  // Debug info
   console.log('=== GrafanaPanel Debug ===');
   console.log('isCrossMeasurement:', isCrossMeasurement);
   console.log('selectedFields:', selectedFields);
@@ -3427,16 +3427,16 @@ function GrafanaPanel({
   );
 }
 
-/* ============ 主工作区网格 ============ */
+/* ============ Main Workbench Grid ============ */
 function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bucketName, visualizationType, setVisualizationType, showFlux, fluxText, onCloseFlux, activeModule, customHierarchy, onUpdateHierarchy, treeData, buckets, selectedHierarchyNode, setSelectedHierarchyNode, hierarchyFluxText, setHierarchyFluxText, hierarchyVisualizationType, setHierarchyVisualizationType, showFluxInWorkbench, setShowFluxInWorkbench, savedHierarchyDefinition, setSavedHierarchyDefinition, hierarchyQuerySelection, setHierarchyQuerySelection, activeHierarchyTab, setActiveHierarchyTab, isCustomHierarchyCollapsed, setIsCustomHierarchyCollapsed, isSavedHierarchyCollapsed, setIsSavedHierarchyCollapsed }) {
   const [copySuccess, setCopySuccess] = useState(false);
   const [isVizDropdownOpen, setIsVizDropdownOpen] = useState(false);
   const vizDropdownRef = useRef(null);
 
-  // 添加默认的aggregateFunction
+  // Add default aggregateFunction
   const aggregateFunction = 'mean';
 
-  // Hierarchy专用的visualization dropdown状态
+  // Hierarchy-specific visualization dropdown state
   const [isHierarchyVizDropdownOpen, setIsHierarchyVizDropdownOpen] = useState(false);
   const hierarchyVizDropdownRef = useRef(null);
 
@@ -3475,14 +3475,14 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
     }
   };
 
-  // 如果有选择的measurement，显示对应的Grafana面板
+  // If a measurement is selected, show the corresponding Grafana panel
   const hasQuery = selectedMeasurement && selectedField;
 
-  // 如果是hierarchy模块，显示自定义层级构建器和图表
+  // If in hierarchy module, show custom hierarchy builder and charts
   if (activeModule === 'hierarchy') {
     const handleNodeSelect = (node) => {
       setSelectedHierarchyNode(node);
-      // 生成Flux查询
+      // Generate Flux query
       const flux = generateHierarchyFlux(node, customHierarchy, range, buckets, aggregateFunction);
       setHierarchyFluxText(flux);
     };
@@ -3492,7 +3492,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
 
     return (
       <div className="p-3 grid grid-cols-12 gap-3 min-h-full">
-        {/* 左侧：Custom Hierarchy */}
+        {/* Left: Custom Hierarchy */}
         <div className="col-span-5 flex flex-col gap-3">
           {/* Custom Hierarchy Builder */}
           <div className="space-y-4">
@@ -3535,8 +3535,8 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
                         const hierarchyStr = JSON.stringify(customHierarchy);
                         localStorage.setItem('savedHierarchyDefinition', hierarchyStr);
                         setSavedHierarchyDefinition(customHierarchy);
-                        setIsCustomHierarchyCollapsed(true); // 保存后折叠custom hierarchy
-                        setIsSavedHierarchyCollapsed(false); // 保存后展开saved hierarchy query
+                        setIsCustomHierarchyCollapsed(true); // Collapse custom hierarchy after saving
+                        setIsSavedHierarchyCollapsed(false); // Expand saved hierarchy query after saving
                         console.log('Successfully saved hierarchy:', customHierarchy);
                         console.log('Hierarchy definition saved successfully!');
                       } catch (e) {
@@ -3609,7 +3609,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
 
         </div>
 
-        {/* 右侧：Dashboard */}
+        {/* Right: Dashboard */}
         <div className="col-span-7 flex-1">
             <div className="bg-gradient-to-br from-white to-slate-50/30 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)] border border-slate-200/60 p-6 h-full">
               <div className="flex items-center justify-between mb-4">
@@ -3618,7 +3618,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
             {hasHierarchyQuery ? (
               <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-200px)]">
 
-              {/* 选中节点信息 */}
+              {/* Selected node info */}
               <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200/50">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
@@ -3658,7 +3658,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
                 </div>
               </div>
 
-              {/* 图表面板 */}
+              {/* Chart panel */}
               <GrafanaPanel
                 key="hierarchy-panel"
                 measurement={
@@ -3711,7 +3711,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
               </div>
             )}
 
-            {/* Generated Flux Query - 固定在右下角 */}
+            {/* Generated Flux Query - pinned to bottom right */}
             {showFluxInWorkbench && hierarchyFluxText && (
               <div className="mt-4 bg-white rounded-xl shadow-sm border border-slate-200">
                 <div className="flex items-center justify-between p-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-transparent">
@@ -3772,7 +3772,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
 
       {hasQuery ? (
         <>
-          {/* 主要图表 - 始终占满宽度 */}
+          {/* Main chart - always full width */}
           <div className="col-span-12">
             <GrafanaPanel
               key="explorer-panel"
@@ -3788,7 +3788,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
           </div>
 
 
-          {/* Flux查询面板 - 在Dashboard下方显示，带动画效果 */}
+          {/* Flux query panel - displayed below Dashboard with animation */}
           <div className={`col-span-12 transition-all duration-300 ease-in-out ${
             showFlux ? 'opacity-100 max-h-96' : 'opacity-0 max-h-0 overflow-hidden'
           }`}>
@@ -3851,7 +3851,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
         </>
       ) : (
         <>
-          {/* 当没有查询时显示提示 */}
+          {/* Show prompt when no query is configured */}
           <div className="col-span-12 flex items-center justify-center min-h-[300px]">
             <div className="text-center text-zinc-500">
               <h3 className="text-lg font-medium text-zinc-700 mb-2">Ready for Visualization</h3>
@@ -3866,7 +3866,7 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
   );
 }
 
-/* ============ 右侧可视化面板 ============ */
+/* ============ Right Visualization Panel ============ */
 function RightVisualizationPanel({ open, onClose, visualizationType, setVisualizationType }) {
   const visualizations = [
     {
@@ -4043,7 +4043,7 @@ function RightVisualizationPanel({ open, onClose, visualizationType, setVisualiz
   );
 }
 
-/* ============ Flux 抽屉（> 符号安全显示） ============ */
+/* ============ Flux Drawer (> symbol safe display) ============ */
 function FluxDrawer({ open, onClose, flux }) {
   if (!open) return null;
   return (
@@ -4074,7 +4074,7 @@ function FluxDrawer({ open, onClose, flux }) {
   );
 }
 
-/* ============ 登录 Modal（/auth/login） ============ */
+/* ============ Login Modal (/auth/login) ============ */
 function LoginModal({ open, onClose, onSuccess, setStatus }) {
   const [url, setUrl] = useState('http://influxdb:8086');
   const [token, setToken] = useState('');
@@ -4213,20 +4213,20 @@ function LoginModal({ open, onClose, onSuccess, setStatus }) {
   );
 }
 
-/* ============ App：状态 + 接口联动 + Tailwind 布局 ============ */
+/* ============ App: State + API Integration + Tailwind Layout ============ */
 export default function App() {
-  // 布局控制
+  // Layout controls
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(false);
   const [fluxOpen, setFluxOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(true);
   const [activeModule, setActiveModule] = useState('query'); // 'query', 'hierarchy', or 'hierarchyQuery'
   const [showFluxInWorkbench, setShowFluxInWorkbench] = useState(false);
-  const [leftPanelWidth, setLeftPanelWidth] = useState(376); // 初始宽度，14(nav) + 320(content) + 2px borders = 336
+  const [leftPanelWidth, setLeftPanelWidth] = useState(376); // Initial width: 14(nav) + 320(content) + 2px borders = 336
   const [isDragging, setIsDragging] = useState(false);
 
-  // 暗色模式状态
-  // 处理拖拽调节面板宽度
+  // Dark mode state
+  // Handle drag to resize panel width
   const handleMouseDown = (e) => {
     setIsDragging(true);
     e.preventDefault();
@@ -4242,7 +4242,7 @@ export default function App() {
     setIsDragging(false);
   };
 
-  // 添加全局鼠标事件监听
+  // Add global mouse event listeners
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
@@ -4264,12 +4264,12 @@ export default function App() {
     };
   }, [isDragging]);
 
-  // 暗色模式效果 - 应用类名到 document 根元素并持久化
-  // 登录 & 状态
+  // Dark mode effect - apply class name to document root element and persist
+  // Login & status
   const [loggedIn, setLoggedIn] = useState(false);
   const [status, setStatus] = useState('');
 
-  // 数据源 & 选择
+  // Data sources & selections
   const [buckets, setBuckets] = useState([]);
   const [activeBucketId, setActiveBucketId] = useState(null);
   const [globalTreeData, setGlobalTreeData] = useState([]);
@@ -4281,7 +4281,7 @@ export default function App() {
   const [selectedField, setSelectedField] = useState('');
 
   const [tagKeys, setTagKeys] = useState([]);
-  // 改为数组结构，每个元素包含 {key, values, allValues}
+  // Changed to array structure, each element contains {key, values, allValues}
   const [selectedTags, setSelectedTags] = useState([]);
 
   const [groupBy, setGroupBy] = useState([]);
@@ -4291,21 +4291,21 @@ export default function App() {
   const [aggregateFunction, setAggregateFunction] = useState('mean');
   const [fluxText, setFluxText] = useState('');
 
-  // 树模块的拖拽状态
+  // Tree module drag state
   const [droppedItems, setDroppedItems] = useState([]);
   const [customHierarchy, setCustomHierarchy] = useState([]);
   const [selectedHierarchyNode, setSelectedHierarchyNode] = useState(null);
   const [hierarchyFluxText, setHierarchyFluxText] = useState('');
   const [hierarchyVisualizationType, setHierarchyVisualizationType] = useState('timeseries');
 
-  // Hierarchy Query模块状态
+  // Hierarchy Query module state
   const [savedHierarchyDefinition, setSavedHierarchyDefinition] = useState(null);
   const [hierarchyQuerySelection, setHierarchyQuerySelection] = useState({});
   const [activeHierarchyTab, setActiveHierarchyTab] = useState('live');
   const [isCustomHierarchyCollapsed, setIsCustomHierarchyCollapsed] = useState(false);
   const [isSavedHierarchyCollapsed, setIsSavedHierarchyCollapsed] = useState(true);
 
-  // 加载保存的hierarchy定义
+  // Load saved hierarchy definitions
   useEffect(() => {
     const saved = localStorage.getItem('savedHierarchyDefinition');
     console.log('Loading saved hierarchy from localStorage:', saved);
@@ -4314,14 +4314,14 @@ export default function App() {
         const parsed = JSON.parse(saved);
         console.log('Successfully parsed saved hierarchy:', parsed);
         setSavedHierarchyDefinition(parsed);
-        // 只有当parsed是有效的数组且不为空时，才自动展开
+        // Only auto-expand when parsed is a valid non-empty array
         if (Array.isArray(parsed) && parsed.length > 0) {
           setIsSavedHierarchyCollapsed(false);
           console.log('Auto-expanding saved hierarchy section (valid data found)');
         }
       } catch (e) {
         console.error('Failed to parse saved hierarchy definition:', e);
-        // 如果解析失败，清除损坏的数据
+        // If parsing fails, clear corrupted data
         localStorage.removeItem('savedHierarchyDefinition');
       }
     } else {
@@ -4329,19 +4329,19 @@ export default function App() {
     }
   }, []);
 
-  // 加载中
+  // Loading state
   const [loadingBuckets, setLoadingBuckets] = useState(false);
   const [loadingMeasurements, setLoadingMeasurements] = useState(false);
   const [loadingFields, setLoadingFields] = useState(false);
 
-  // 当前 bucket 名称（用于 Flux）
+  // Current bucket name (used for Flux)
   const activeBucket = useMemo(
     () => buckets.find(b => b.id === activeBucketId) || null,
     [buckets, activeBucketId]
   );
   const activeBucketName = activeBucket?.name || '';
 
-  // 登录成功 → 自动拉 buckets
+  // Login success -> auto fetch buckets
   useEffect(() => {
     const loadBuckets = async () => {
       try {
@@ -4360,7 +4360,7 @@ export default function App() {
     if (loggedIn) loadBuckets();
   }, [loggedIn]);
 
-  // 切换 bucket → 清空下游 + 拉 measurements
+  // Switch bucket -> clear downstream + fetch measurements
   useEffect(() => {
     if (!activeBucketId) {
       setMeasurements([]); setSelectedMeasurement('');
@@ -4386,7 +4386,7 @@ export default function App() {
     run();
   }, [activeBucketId]);
 
-  // 切换 measurement → 清空 field + 拉 fields
+  // Switch measurement -> clear field + fetch fields
   useEffect(() => {
     if (!selectedMeasurement || !activeBucketId) {
       setFields([]); setSelectedField('');
@@ -4410,7 +4410,7 @@ export default function App() {
     run();
   }, [selectedMeasurement, activeBucketId]);
   
-  // measurement 变化后拉取可用的 tag keys
+  // Fetch available tag keys after measurement changes
   useEffect(() => {
     setTagKeys([]); setSelectedTags([]);
     if (!selectedMeasurement || !activeBucketId) return;
@@ -4419,25 +4419,25 @@ export default function App() {
       .catch(e => setStatus('Load tag keys error: ' + e.message));
   }, [selectedMeasurement, activeBucketId]);
 
-  // 当 measurement 变更时，构建group选项
+  // Build group options when measurement changes
   const groupOptions = useMemo(() => {
     const BASE = ['_measurement','_field'];
-    const BLOCK = new Set(['_time','_start','_stop']); // BASE 不放进 BLOCK
+    const BLOCK = new Set(['_time','_start','_stop']); // BASE not included in BLOCK
     const raw = [...BASE, ...(tagKeys || [])].filter(Boolean).filter(k => !BLOCK.has(k));
-    return Array.from(new Set(raw));   // 去重，保证 _measurement/_field 只出现一次
+    return Array.from(new Set(raw));   // Deduplicate, ensure _measurement/_field appears only once
   }, [tagKeys]);
 
 
   useEffect(() => {
-    setGroupBy([]); // 默认不选择任何group，让用户自己选择
+    setGroupBy([]); // Default no group selected, let the user choose
   }, [selectedMeasurement]);
 
-  // Auto run：当条件完整时自动构建 Flux（将来可在此触发图表刷新）
+  // Auto run: automatically build Flux when conditions are complete (can trigger chart refresh later)
   useEffect(() => {
     const ready = activeBucketName && selectedMeasurement && selectedField;
     if (ready) {
       try {
-        // 将selectedTags转换为后端期望的格式
+        // Convert selectedTags to the format expected by backend
         const tags = selectedTags
           .filter(tag => tag.values.length > 0)
           .map(tag => ({
@@ -4446,43 +4446,43 @@ export default function App() {
             value: tag.values
           }));
 
-        // 构建查询规范（暂时不使用，但保留以备将来需要）
+        // Build query spec (not used currently, but kept for future needs)
         buildQuerySpecFromUI({
           measurement: selectedMeasurement,
           field: selectedField,
           tags,
           range,
-          groupBy: groupBy.length > 0 ? groupBy : [], // 只有在用户选择了group时才传递
+          groupBy: groupBy.length > 0 ? groupBy : [], // Only pass group when user has selected
           aggregate: { every: getAggregateWindow(range), fn: 'mean' }
         });
 
-        // 简化的Flux查询构建（用于显示）
+        // Simplified Flux query builder (for display)
         let simpleFlux = `from(bucket: "${activeBucketName}")
   |> range(start: ${range})
   |> filter(fn: (r) => r._measurement == "${selectedMeasurement}")
   |> filter(fn: (r) => r._field == "${selectedField}")`;
 
-        // 添加tag过滤 - 每个tag单独筛选
+        // Add tag filters - each tag filtered independently
         if (tags.length > 0) {
           tags.forEach(tag => {
-            // 注意：InfluxDB中标签值始终是字符串，即使看起来像数字也需要加引号
-            const values = tag.value; // tags数组中使用的是value字段，不是values
+            // Note: In InfluxDB, tag values are always strings, even if they look like numbers they need quotes
+            const values = tag.value; // The tags array uses the value field, not values
             if (values.length === 1) {
-              // 单个值：直接比较，标签值必须加引号
+              // Single value: direct comparison, tag value must be quoted
               const value = values[0];
               simpleFlux += `\n  |> filter(fn: (r) => r["${tag.key}"] == "${value}")`;
             } else {
-              // 多个值：使用contains，标签值必须加引号
+              // Multiple values: use contains, tag values must be quoted
               simpleFlux += `\n  |> filter(fn: (r) => contains(value: r["${tag.key}"], set: [${values.map(v => `"${v}"`).join(', ')}]))`;
             }
           });
         }
 
-        // 添加聚合 - 根据时间范围动态调整聚合窗口
+        // Add aggregation - dynamically adjust aggregate window based on time range
         const dynamicWindow = getAggregateWindow(range);
         simpleFlux += `\n  |> aggregateWindow(every: ${dynamicWindow}, fn: ${aggregateFunction}, createEmpty: false)`;
 
-        // 添加group by（只有在用户手动选择时才分组）
+        // Add group by (only group when user manually selects)
         if (groupBy.length > 0) {
           simpleFlux += `\n  |> group(columns: [${groupBy.map(col => `"${col}"`).join(', ')}], mode: "by")`;
         }
@@ -4498,14 +4498,14 @@ export default function App() {
     }
   }, [activeBucketName, selectedMeasurement, selectedField, selectedTags, range, groupBy]);
 
-  // 树模块拖拽处理函数
+  // Tree module drag handler functions
   const handleDragStart = (e, node) => {
     e.dataTransfer.setData('text/plain', JSON.stringify(node));
     e.dataTransfer.effectAllowed = 'copy';
   };
 
   const handleDrop = (nodeData) => {
-    // 避免重复添加相同的项目
+    // Avoid adding duplicate items
     const exists = droppedItems.some(item => item.id === nodeData.id);
     if (!exists) {
       setDroppedItems(prev => [...prev, nodeData]);
@@ -4516,7 +4516,7 @@ export default function App() {
     setDroppedItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  // 点击 Run/Apply：构建 Flux 并展开抽屉
+  // Click Run/Apply: build Flux and open drawer
   const runNow = async () => {
     if (!activeBucketId || !selectedMeasurement || !selectedField) {
       setStatus('Please complete bucket/measurement/field.');
@@ -4524,7 +4524,7 @@ export default function App() {
     }
     try {
       setStatus('Running query...');
-      // 将selectedTags转换为后端期望的格式
+      // Convert selectedTags to the format expected by backend
       const tags = selectedTags
         .filter(tag => tag.values.length > 0)
         .map(tag => ({
@@ -4538,12 +4538,12 @@ export default function App() {
         field: selectedField,
         tags,
         range,
-        groupBy: groupBy.length > 0 ? groupBy : [], // 只有在用户选择了group时才传递
-        aggregate: { every: getAggregateWindow(range), fn: 'mean' }  // 动态调整聚合窗口
+        groupBy: groupBy.length > 0 ? groupBy : [], // Only pass group when user has selected
+        aggregate: { every: getAggregateWindow(range), fn: 'mean' }  // Dynamically adjust aggregate window
       });
       const { flux, rows } = await runQuerySpec({ bucketId: activeBucketId, spec });
       setFluxText(sanitizeFlux(flux));
-      // TODO: 这里的 rows 你可以传给图表/Grafana（当前先不展示）
+      // TODO: The rows here can be passed to chart/Grafana (not displayed for now)
       setStatus(`Query returned ${Array.isArray(rows) ? rows.length : 0} rows`);
     } catch (e) {
       setStatus('Run error: ' + e.message);
@@ -4567,7 +4567,7 @@ export default function App() {
       />
 
       <main className="flex-1 flex overflow-hidden">
-        {/* 导航侧边栏 - 始终显示 */}
+        {/* Navigation sidebar - always visible */}
         <nav className="w-14 bg-zinc-100 border-r border-zinc-200 flex flex-col flex-shrink-0">
               <div className="p-3">
                 <button
@@ -4629,13 +4629,13 @@ export default function App() {
               </div>
         </nav>
 
-        {/* 左侧面板内容 - 可折叠 */}
+        {/* Left panel content - collapsible */}
         {leftOpen && (
           <div
             className="flex flex-col bg-white border-r border-zinc-200 flex-shrink-0"
             style={{ width: `${leftPanelWidth - 56}px` }}
           >
-            {/* 模块内容区域 - 独立滚动 */}
+            {/* Module content area - independent scrolling */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
               {activeModule === 'query' && (
                 <div className="flex-1 flex flex-col overflow-hidden">
@@ -4751,7 +4751,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 拖拽调节器 */}
+        {/* Drag resizer */}
         {leftOpen && (
           <div
             className={`w-1 bg-zinc-200 hover:bg-sky-400 cursor-col-resize flex-shrink-0 transition-all duration-200 relative group ${
@@ -4760,7 +4760,7 @@ export default function App() {
             onMouseDown={handleMouseDown}
             title="Drag to resize panel"
           >
-            {/* 拖拽手柄指示器 */}
+            {/* Drag handle indicator */}
             <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200 ${
               isDragging ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             }`}>
@@ -4775,7 +4775,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 主工作区 - 独立滚动 */}
+        {/* Main workspace - independent scrolling */}
         <section className="flex-1 flex flex-col overflow-hidden relative">
 
 
@@ -4819,7 +4819,7 @@ export default function App() {
         </section>
       </main>
 
-      {/* 底部状态条 */}
+      {/* Bottom status bar */}
       <footer className="h-7 flex items-center justify-between px-3 text-xs text-zinc-600 bg-white/80 backdrop-blur border-t border-zinc-200">
         <span>{status}</span>
         <div className="flex gap-2">

@@ -41,7 +41,7 @@ export async function fetchFields(bucketId, measurement) {
   return Array.isArray(j) ? j : [];
 }
 
-// 取 Tag Keys
+// Fetch Tag Keys
 export async function fetchTagKeys(bucketId, measurement, start = '-30d') {
   if (!bucketId) throw new Error('bucketId missing');
   const p = new URLSearchParams({ bucketId, start });
@@ -53,7 +53,7 @@ export async function fetchTagKeys(bucketId, measurement, start = '-30d') {
   return Array.isArray(j) ? j : [];
 }
 
-// 取某个 Tag Key 的所有取值（可按 measurement / field 进一步约束）
+// Fetch all values for a given Tag Key (optionally filtered by measurement / field)
 export async function fetchTagValues(bucketId, tag, { measurement, field, start = '-30d', filters = [] } = {}) {
   if (!bucketId || !tag) throw new Error('bucketId/tag missing');
   const p = new URLSearchParams({ bucketId, tag, start });
@@ -69,7 +69,7 @@ export async function fetchTagValues(bucketId, tag, { measurement, field, start 
   return Array.isArray(j) ? j : [];
 }
 
-// 结构化查询：把 spec 传给后端生成并执行 Flux（/api/query/spec）
+// Structured query: send spec to backend to generate and execute Flux (/api/query/spec)
 export async function runQuerySpec({ bucketId, spec, dry = false }) {
   if (!bucketId || !spec) throw new Error('bucketId/spec missing');
   const r = await fetch('/api/query/spec', {

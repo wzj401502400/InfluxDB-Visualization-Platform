@@ -2,7 +2,7 @@
 import { buildSchema } from 'graphql';
 
 export function generateSchema() {
-  // 根据你需求可以再扩展类型（Bucket、LoginResult 等）
+  // Extend types as needed (Bucket, LoginResult, etc.)
   return buildSchema(/* GraphQL */ `
     type Bucket {
       id: ID

@@ -4,9 +4,9 @@ GRAFANA_URL="http://localhost:3001"
 GRAFANA_USER="admin"
 GRAFANA_PASS="admin"
 
-echo "🚀 创建通用动态Dashboard..."
+echo "🚀 Creating Universal Dynamic Dashboard..."
 
-# 创建一个通用的dashboard，可以通过URL参数接受任何查询和可视化类型
+# Create a universal dashboard that accepts any query and visualization type via URL parameters
 curl -X POST \
     "$GRAFANA_URL/api/dashboards/db" \
     -H "Content-Type: application/json" \
@@ -162,13 +162,13 @@ curl -X POST \
         "overwrite": true
     }'
 
-echo -e "\n✅ 通用Dashboard创建完成！"
-echo "🌐 访问: $GRAFANA_URL/d/universal-dashboard/universal-dynamic-dashboard"
-echo "🔗 Solo面板URL: $GRAFANA_URL/d-solo/universal-dashboard/universal-dynamic-dashboard?orgId=1&panelId=1"
+echo -e "\n✅ Universal Dashboard created successfully!"
+echo "🌐 Visit: $GRAFANA_URL/d/universal-dashboard/universal-dynamic-dashboard"
+echo "🔗 Solo panel URL: $GRAFANA_URL/d-solo/universal-dashboard/universal-dynamic-dashboard?orgId=1&panelId=1"
 echo ""
-echo "使用方法："
-echo "- var-viz_type: 设置可视化类型 (timeseries, stat, gauge, table, barchart, piechart, heatmap, histogram)"
-echo "- var-panel_title: 设置面板标题"
-echo "- var-flux_query: 设置Flux查询语句"
-echo "- var-time_from: 设置开始时间 (默认: now-24h)"
-echo "- var-time_to: 设置结束时间 (默认: now)"
+echo "Usage:"
+echo "- var-viz_type: Set visualization type (timeseries, stat, gauge, table, barchart, piechart, heatmap, histogram)"
+echo "- var-panel_title: Set panel title"
+echo "- var-flux_query: Set Flux query"
+echo "- var-time_from: Set start time (default: now-24h)"
+echo "- var-time_to: Set end time (default: now)"

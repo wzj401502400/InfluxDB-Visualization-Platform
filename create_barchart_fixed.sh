@@ -4,9 +4,9 @@ GRAFANA_URL="http://localhost:3001"
 GRAFANA_USER="admin"
 GRAFANA_PASS="admin"
 
-echo "🚀 重新创建Bar Chart Dashboard..."
+echo "🚀 Recreating Bar Chart Dashboard..."
 
-# 创建Bar Chart dashboard
+# Create Bar Chart dashboard
 curl -X POST \
     "$GRAFANA_URL/api/dashboards/db" \
     -H "Content-Type: application/json" \
@@ -125,5 +125,5 @@ curl -X POST \
         "overwrite": true
     }'
 
-echo -e "\n✅ Bar Chart Dashboard创建完成！"
-echo "🌐 访问: $GRAFANA_URL/d/dynamic-dashboard-barchart/dynamic-dashboard-barchart"
+echo -e "\n✅ Bar Chart Dashboard created successfully!"
+echo "🌐 Visit: $GRAFANA_URL/d/dynamic-dashboard-barchart/dynamic-dashboard-barchart"

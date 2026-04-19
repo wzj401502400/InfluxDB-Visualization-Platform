@@ -1,16 +1,16 @@
 // server/graphql/resolvers.js
-// 做成“工厂函数”，把服务依赖注入进来，方便测试/替换
+// Factory function: inject service dependencies for easy testing/replacement
 export function makeResolvers({ listBuckets, validateInflux, setSession, clearSession }) {
   return {
     // Query
     hello: () => 'Hello from GraphQL!',
     getBuckets: async (_args, context) => {
-      // 从 session 取当前登录的 influx 连接信息
+      // Get current InfluxDB connection info from session
       const sess = context.getSession();
       if (!sess) {
         throw new Error('Unauthorized');
       }
-      return await listBuckets(sess); // 返回 [{id,name},...]
+      return await listBuckets(sess); // Returns [{id,name},...]
     },
 
     // Mutation
@@ -18,8 +18,8 @@ export function makeResolvers({ listBuckets, validateInflux, setSession, clearSe
 
     login: async ({ url, token }, context) => {
       try {
-        const info = await validateInflux({ url, token }); // 探活 + 权限验证
-        // 把 url/token 存到会话（只在服务端）
+        const info = await validateInflux({ url, token }); // Probe + permission check
+        // Store url/token in session (server-side only)
         setSession(context.res, { influxUrl: url, token });
         return { ok: true };
       } catch (e) {

@@ -4,9 +4,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true,       // 允许容器外访问
+    host: true,       // Allow access from outside the container
     port: 5173,
-    strictPort: true,  // 端口被占用就报错，不自动跳到 5174
+    strictPort: true,  // Fail if port is occupied, don't auto-switch to 5174
     proxy: {
       '/graphql': 'http://localhost:4000',
       '/auth': 'http://localhost:4000',

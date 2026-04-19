@@ -86,17 +86,8 @@ __Grafana Username:__ admin
 
 __Grafana Password:__ admin
 
-> Add a __Data source__, search __InfluxDB__, change Query Language to __Flux__,
-> 
-> <img width="534" alt="image" src="https://github.cs.adelaide.edu.au/user-attachments/assets/4ce4f995-91c5-4eb1-9108-0cb311a1ce9b" />
-
-> Disable all the __Auth__
-
-> Set URL __http://influxdb:8086__, Token: __devtoken__, Organization: __devorg__.
-> 
-> <img width="534" alt="image" src="https://github.cs.adelaide.edu.au/user-attachments/assets/07294bb7-f33d-40ba-9c19-0f6438e7fb7f" />
->
-> <img width="534" alt="image" src="https://github.cs.adelaide.edu.au/user-attachments/assets/8027fa98-5419-4e77-9bff-4058e9c03e1d" />
+> InfluxDB data source is **auto-configured** on first startup (via provisioning).
+> No manual setup needed — Flux mode, devtoken, devorg, devbucket are all pre-configured.
 
 
 
@@ -149,39 +140,25 @@ If Grafana does not allow anonymous access, inject a login cookie at the reverse
 
 ### 🔧 Grafana Authentication Setup
 
-#### Quick Fix
+The Grafana Service Account Token is pre-configured in `compose.influxdb.yaml` (`GRAFANA_TOKEN`).
 
-If you see `401 Unauthorized` errors, follow these steps:
+On **first startup**, everything works out of the box — no manual steps needed.
 
-#### 1. Get Grafana API Key
+#### After `docker compose down -v` (volumes deleted)
 
-1. Visit http://localhost:3001
-2. Login (admin/admin)
-3. Go to **Administration** → **Service accounts**
-4. Click **"Add service account"** (Role: Admin)
-5. Click **"Add service account token"**
-6. Copy the token (format: `glsa_xxxxx...`)
+If you wipe volumes, the token in compose becomes invalid. Regenerate it:
 
-#### 2. Configure Backend
-
-Edit `server/routes/rest.js` line 462:
-
-**Change:**
-```javascript
-const grafanaAuthHeader = 'Basic ' + Buffer.from(`${grafanaUser}:${grafanaPassword}`).toString('base64');
-```
-
-**To:**
-```javascript
-const grafanaAuthHeader = 'Bearer glsa_your_api_key_here';
-```
-
-#### 3. Restart
 ```bash
-docker compose -f devcontainer/compose.influxdb.yaml restart app
-```
+# 1. Create Service Account + Token
+$headers = @{"Authorization"="Basic YWRtaW46YWRtaW4="; "Content-Type"="application/json"}
+$sa = Invoke-RestMethod -Method Post -Uri "http://localhost:3001/api/serviceaccounts" -Headers $headers -Body '{"name":"nocode-sa","role":"Admin"}'
+$token = Invoke-RestMethod -Method Post -Uri "http://localhost:3001/api/serviceaccounts/$($sa.id)/tokens" -Headers $headers -Body '{"name":"nocode-token"}'
+Write-Host "New token:" $token.key
 
-Done! ✅
+# 2. Update GRAFANA_TOKEN in devcontainer/compose.influxdb.yaml with the new token
+# 3. Restart app container
+docker compose -f devcontainer/compose.influxdb.yaml up -d app
+```
 
 ✅ __FAQs__
 

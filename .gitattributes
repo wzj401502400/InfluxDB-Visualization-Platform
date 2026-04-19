@@ -1,18 +1,18 @@
-# 默认：所有文本统一提交为 LF
+# Default: commit all text files with LF line endings
 * text=auto eol=lf
 
-# Windows 专用脚本保留 CRLF（避免在记事本/批处理里出问题）
+# Keep CRLF for Windows-specific scripts (avoid issues in Notepad/batch)
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
-# shell/构建脚本强制 LF（在 WSL/容器/CI 中最安全）
+# Force LF for shell/build scripts (safest in WSL/containers/CI)
 *.sh text eol=lf
 Dockerfile text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 
-# 常见二进制文件，禁止行尾转换/差异化
+# Common binary files — disable line-ending conversion and diff
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -24,7 +24,7 @@ Dockerfile text eol=lf
 *.woff binary
 *.woff2 binary
 
-# 锁文件建议保持 LF，避免跨平台 diff 抖动
+# Lock files should stay LF to avoid cross-platform diff noise
 package-lock.json text eol=lf
 yarn.lock text eol=lf
 pnpm-lock.yaml text eol=lf

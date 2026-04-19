@@ -1,11 +1,11 @@
-# Node.js 22 LTS（Dev Containers 官方镜像）
+# Node.js 22 LTS (official Dev Containers image)
 FROM mcr.microsoft.com/devcontainers/javascript-node:1-22-bullseye
 
-# 可选：常用工具
+# Optional: common utilities
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     bash-completion \
  && rm -rf /var/lib/apt/lists/*
 
-# 使用 devcontainers 预置用户
+# Use devcontainers default user
 WORKDIR /workspaces
