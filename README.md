@@ -145,6 +145,8 @@ cp devcontainer/.env.example devcontainer/.env
 # Edit .env — set GRAFANA_TOKEN (see instructions inside the file)
 ```
 
+> **Note: To use Grafana dynamic panels and dashboard auto-creation, you must set `GRAFANA_TOKEN` in your `.env` file (see `.env.example` and Quick Start step 1 for instructions).**
+
 ### 2. Start all services
 
 Open `devcontainer/compose.influxdb.yaml` in VSCode and click **Run all services**, or:
