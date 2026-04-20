@@ -1,162 +1,253 @@
-# NoCodeQuery
+# NoCodeQuery — InfluxDB Visualization Platform
 
-Development environment based on __React (Vite)__ frontend + __Express__ + __GraphQL__ backend + __InfluxDB__ + __Grafana__.
-
-Uses __VSCode Dev Containers__ + __Docker Compose__ to unify the development environment and ensure team consistency.
+A **no-code time-series data exploration tool** that lets users visually build InfluxDB Flux queries through a drag-and-drop hierarchy tree, dynamic form controls, and embedded Grafana dashboards — without writing a single line of Flux.
 
 ---
 
-## 📂 Project Structure
-```plaintext
-.
-├── client/              # Frontend (React + Vite)
-│   ├── src/             # React source code
-│   ├── public/          # Static assets
-│   ├── package.json     # Frontend dependencies
-│   └── vite.config.js   # Vite config
-│
-├── server/              # Backend (Express + GraphQL)
-│   ├── graphql/         # GraphQL schema & resolvers
-│   ├── middleware/      # Express middleware
-│   ├── routes/          # REST API routes
-│   ├── services/        # InfluxDB, session, etc.
-│   ├── server.js        # Backend entry point
-│   └── package.json     # Backend dependency declarations (declared only, no lock generated)
-│
-├── devcontainer/        # VSCode Dev Container / Compose configs
-│   └── compose.influxdb.yaml
-│
-├── package.json         # Root package.json (shared deps & scripts)
-├── package-lock.json    # Root lock file (single source of truth)
-├── README.md            # Project guide
-└── ...
+## Tech Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| **Frontend** | React | 19.1 |
+| **Build Tool** | Vite | 7.1 |
+| **Styling** | Tailwind CSS | 3.4 |
+| **Animation** | Framer Motion | 11.x |
+| **Icons** | Lucide React | 0.460 |
+| **Charts** | Recharts | 3.2 |
+| **Data Fetching** | TanStack React Query | 5.51 |
+| **Backend** | Express | 5.1 |
+| **API Layer** | REST + GraphQL (`graphql-http`) | GraphQL 16 |
+| **Time-Series DB** | InfluxDB | 2.7 |
+| **Query Language** | Flux | — |
+| **DB Client** | `@influxdata/influxdb-client` | 1.35 |
+| **Visualization** | Grafana OSS (embedded via iframe) | 11.4 |
+| **Session Auth** | Cookie + in-memory Map (`cookie-parser`) | — |
+| **Runtime** | Node.js | 22 LTS |
+| **Containerization** | Docker Compose | — |
+| **Dev Environment** | VSCode Dev Containers | — |
+| **Testing** | Jest (ESM) + supertest | Jest 29 |
+| **Linting** | ESLint 9 (flat config) + react-hooks + react-refresh | — |
+| **Package Management** | npm workspaces (monorepo) | — |
+
+---
+
+## Features
+
+- **Session-based authentication** — InfluxDB URL + Token stored in httpOnly cookies; never exposed to the browser
+- **Dynamic schema discovery** — Measurements, fields, tag keys, and tag values are fetched live from InfluxDB using Flux `schema.*()` functions
+- **No-code query builder** — Select bucket → measurement → field → tags → time range → aggregation function → group by, all from dropdowns
+- **Drag-and-drop hierarchy tree** — Build custom data hierarchies (bucket → measurement → field → tag) and query by clicking any node
+- **Saved hierarchy queries** — Save hierarchy definitions and re-run with different parameters
+- **Configurable aggregation** — Switch between `mean`, `sum`, `max`, `min`, `median`, `count`, `last`, `first`, `spread` — applied to both the Flux display and the Grafana chart
+- **Group By support** — Multi-select columns to group by; synced to both the generated Flux and Grafana visualization
+- **8 visualization types** — Time series, bar chart, stat, gauge, table, pie chart, heatmap, histogram (via Grafana)
+- **Embedded Grafana dashboards** — Backend dynamically creates Grafana dashboards via HTTP API and embeds them as iframes; re-submit overwrites the same dashboard instead of creating duplicates
+- **Cross-measurement queries** — Union multiple measurements with different fields into a single chart
+- **Real-time Flux preview** — See the generated Flux query update live as you change parameters
+- **GraphQL API** — Bucket listing, login/logout exposed via GraphQL alongside REST endpoints
+- **Auto-provisioned Grafana datasource** — InfluxDB Flux datasource is configured automatically on first startup via provisioning YAML
+
+---
+
+## Architecture
 
 ```
+┌──────────────────┐        ┌──────────────────┐        ┌──────────────┐
+│  React 19 + Vite │───────▶│  Express 5 API   │───────▶│  InfluxDB 2  │
+│  Tailwind CSS    │  REST  │  + GraphQL       │  Flux  │  (TSDB)      │
+│  Framer Motion   │  GQL   │  cookie-parser   │        │  :8086       │
+│  React Query     │        │  :4000           │        └──────────────┘
+│  Recharts        │        └────────┬─────────┘               ▲
+│  :5173           │                 │ Grafana HTTP API         │ Flux
+└──────┬───────────┘                 ▼                         │
+       │ iframe              ┌──────────────┐                  │
+       └────────────────────▶│  Grafana OSS │──────────────────┘
+                             │  :3001       │
+                             └──────────────┘
+```
 
-## 🚀 Development Environment
+### Data Flow
 
-- Node.js 22 (auto-installed inside container)
-- Docker / Docker Compose
-- VSCode + Dev Containers extension
-- Dependency installation and runtime happen __inside the container__ to avoid cross-platform issues.
+1. **UI → Backend**: React sends structured query specs (bucket, measurement, field, tags, time range, aggregate function, group by) to Express REST endpoints.
+2. **Backend → InfluxDB**: Express compiles specs into Flux queries and executes them via the InfluxDB v2 HTTP API.
+3. **Backend → Grafana**: Express creates/overwrites Grafana dashboards via Grafana HTTP API (Basic Auth), returning an iframe embed URL.
+4. **Visualization**: Grafana panels are embedded via iframe in the React UI. Flux query text is displayed alongside for transparency.
 
+### Key Design Decisions
 
+| Decision | Rationale |
+|---|---|
+| Session cookie (httpOnly) | Token never in localStorage/JS — prevents XSS token theft |
+| In-memory session Map | Sufficient for single-instance dev; swap to Redis for production |
+| 365-day default lookback | Test data may be months old; avoids "no data" confusion |
+| Measurement-scoped tag values | Prevents cross-measurement value pollution in dropdowns |
+| Stable Grafana dashboard UID | Re-submit overwrites the same dashboard instead of creating orphans |
+| Whitelist validation on aggregation/groupBy | Prevents Flux injection in server-side query construction |
+| npm workspaces monorepo | Single `package-lock.json`; avoids dependency drift between client/server |
 
-## 🛠 Daily Workflow
+---
 
-### 1. Open the project
-1.1 Open the project folder with VSCode
+## Project Structure
 
-1.2 Open Docker Desktop
+```
+.
+├── client/                          # Frontend (React 19 + Vite 7)
+│   ├── src/
+│   │   ├── App.jsx                  # Main UI — hierarchy builder, query form, visualization
+│   │   ├── config/grafana.js        # Aggregate window calculator
+│   │   ├── services/api.js          # REST/GraphQL client functions
+│   │   └── utils/flux.js            # Flux query spec builder
+│   ├── index.html                   # SPA entry point
+│   ├── tailwind.config.js           # Tailwind theme (brand/accent/neutral)
+│   ├── vite.config.js               # Dev proxy → :4000
+│   └── package.json                 # Frontend deps
+│
+├── server/                          # Backend (Express 5 + GraphQL 16)
+│   ├── server.js                    # Entry — mounts REST, GraphQL, health check
+│   ├── graphql/
+│   │   ├── schema.js                # GraphQL type definitions
+│   │   └── resolvers.js             # Query/Mutation resolvers
+│   ├── middleware/auth.js           # Session validation middleware
+│   ├── routes/rest.js               # REST endpoints + Grafana dashboard proxy
+│   ├── services/
+│   │   ├── influx.js                # InfluxDB client (schema discovery + query)
+│   │   └── session.js               # Cookie-based session manager
+│   └── package.json                 # Backend deps
+│
+├── devcontainer/                    # Docker / Dev Container configs
+│   ├── compose.influxdb.yaml        # 3-service orchestration (app + influxdb + grafana)
+│   ├── Dockerfile                   # Node.js 22 LTS (MS devcontainer base)
+│   └── grafana-provisioning/
+│       └── datasources/influxdb.yaml  # Auto-configures InfluxDB Flux datasource
+│
+├── script/
+│   └── influx_testdata_augmented.csv  # Sample data (measurement=m, field=mem, 6 tags)
+│
+├── package.json                     # Root — npm workspaces, concurrently
+└── package-lock.json                # Single lock file for entire monorepo
+```
 
-1.3 Open compose.influxdb.yaml
+---
 
-1.4 Wait a few seconds and click __Run all services__ at the top — that’s it
+## Quick Start
 
-1.5 Visit web URLs directly
-   
-> On first start, images will be built automatically and the app + influxdb + grafana containers will be launched.
+### Prerequisites
 
-### 2. Configure environment variables
+- Docker Desktop
+- VSCode + Dev Containers extension (recommended)
 
-Before starting, create the `.env` file in the `devcontainer/` folder:
+### 1. Clone and configure
 
 ```bash
+git clone <repo-url>
+cd InfluxDB-Visualization-Platform
 cp devcontainer/.env.example devcontainer/.env
+# Edit .env — set GRAFANA_TOKEN (see instructions inside the file)
 ```
 
-Then fill in `GRAFANA_TOKEN` with a valid Grafana Service Account Token. See `.env.example` for instructions on how to create one.
+### 2. Start all services
 
-> `.env` is git-ignored and will not be committed.
+Open `devcontainer/compose.influxdb.yaml` in VSCode and click **Run all services**, or:
 
-### 3. Install dependencies
-Run inside the container only to ensure consistency.
+```bash
+docker compose -f devcontainer/compose.influxdb.yaml up -d --build
+```
 
-If you add new deps, declare them in package.json; rebuilding the Docker setup will pick them up.
+This launches three containers:
+- **app** — Node.js 22 running the Express backend + Vite dev server
+- **influxdb** — InfluxDB 2.7 with pre-configured org/bucket/token
+- **grafana** — Grafana OSS 11.4 with auto-provisioned InfluxDB datasource
 
-### 4. Start services
-4.1 Open Docker Desktop
+### 3. Load test data
 
-4.2 Open __compose.influxdb.yaml__ and click __Run all services__
+1. Open InfluxDB UI: http://localhost:8086 (user: `dev`, password: `devpass123`)
+2. Go to **Load Data → Buckets → devbucket → Add Data → CSV**
+3. Upload `script/influx_testdata_augmented.csv`
 
-> Note: run docker compose -f devcontainer/compose.influxdb.yaml down -v in a terminal to remove all current configs if Docker misbehaves, then repeat the steps above to regenerate containers.
+### 4. Access the app
 
-___
-__InfluxDB URL:__ http://localhost:8086
+| Service | URL | Credentials |
+|---|---|---|
+| **App** | http://localhost:5173 | Login with URL `http://influxdb:8086`, token `devtoken` |
+| **InfluxDB** | http://localhost:8086 | `dev` / `devpass123` |
+| **Grafana** | http://localhost:3001 | `admin` / `admin` |
 
-__InfluxDB Username:__ dev
+> Grafana datasource is **auto-provisioned** — no manual configuration needed.
 
-__InfluxDB Password:__ devpass123
+### 5. Development workflow
 
-> Click __Load Data__ on the left toolbar and upload a test __CSV file__ to create a default buckets named __devbucket__.
+| Tool | Behavior |
+|---|---|
+| Frontend (Vite) | HMR — save a file, see changes instantly |
+| Backend (nodemon) | Auto-restarts on file change |
+| Code editing | Edit on host; volumes are mounted into container |
 
-___
-__Grafana URL:__ http://localhost:3001
+### Reset everything
 
-__Grafana Username:__ admin
+```bash
+docker compose -f devcontainer/compose.influxdb.yaml down -v
+# Re-run step 2. Recreate GRAFANA_TOKEN after volume wipe.
+```
 
-__Grafana Password:__ admin
+---
 
-> InfluxDB data source is **auto-configured** on first startup (via provisioning).
-> No manual setup needed — Flux mode, devtoken, devorg, devbucket are all pre-configured.
+## Testing
 
+11 integration tests covering auth, protected endpoints, input validation, and dashboard creation.
 
+```bash
+# Run from project root
+npm test -w server
+```
 
-___
-__No-Code Solution Web Application URL:__ http://localhost:5173
+| # | Test | Assertion |
+|---|---|---|
+| 1 | `GET /healthz` | 200 + `"ok"` |
+| 2 | `POST /auth/login` — empty body | 400 — fields required |
+| 3 | `POST /auth/login` — bad URL | 400 — invalid URL format |
+| 4 | `POST /auth/login` — valid | 200 + `set-cookie: sid=…` |
+| 5 | `POST /auth/logout` | 200 + `ok:true` |
+| 6 | `GET /api/buckets` — no session | 401 |
+| 7 | `GET /api/measurements` — no session | 401 |
+| 8 | `GET /api/buckets` — with session | 200 + bucket list |
+| 9 | `POST /api/query/spec` — missing time | 400 — `time.start required` |
+| 10 | `POST /api/create-filtered-dashboard` — no measurement | 400 |
+| 11 | `POST /api/create-filtered-dashboard` — cross-measurement missing fields | 400 |
 
-__Login URL:__ http://influxdb:8086
+Global `fetch` is mocked via `jest.fn()` — tests run without InfluxDB or Grafana.
 
-__Login token:__ devtoken
+---
 
-___
+## API Reference
 
-### 5. Edit code
+| Endpoint | Method | Description |
+|---|---|---|
+| `/auth/login` | POST | Authenticate with InfluxDB URL + Token |
+| `/auth/logout` | POST | Clear session |
+| `/api/buckets` | GET | List all buckets |
+| `/api/measurements` | GET | List measurements (`?bucketId=&start=`) |
+| `/api/fields` | GET | List fields (`?bucketId=&measurement=&start=`) |
+| `/api/tag-keys` | GET | List tag keys (`?bucketId=&measurement=&start=`) |
+| `/api/tag-values` | GET | List tag values (`?bucketId=&tag=&measurement=&field=&start=&filters=`) |
+| `/api/query/spec` | POST | Execute structured query spec → Flux |
+| `/api/query` | POST | Execute raw Flux query |
+| `/api/create-filtered-dashboard` | POST | Create/overwrite Grafana dashboard (filters, aggregation, groupBy) |
+| `/graphql` | POST | GraphQL: `getBuckets`, `login`, `logout` |
+| `/healthz` | GET | Health check |
 
-Use VSCode on the host (Windows / Mac / Linux) to open and edit the code.
+> All `/api/*` endpoints require a valid session. Schema discovery defaults to `start=-365d`.
 
-Changes are automatically synced (volumes are mounted).
+---
 
-Frontend (Vite) → HMR auto-reload
+## Test Data
 
-Backend (nodemon) → Auto-restart
+`script/influx_testdata_augmented.csv`:
 
-### 6. Commit code
+| Property | Value |
+|---|---|
+| `_measurement` | `m` |
+| `_field` | `mem` |
+| Tags | `host` (A/B/C), `region` (east), `env` (prod/staging/dev), `service` (billing/api/ml), `rack` (r1/r2/r3), `az` (a/b) |
+| Time range | 2025-08-31 00:52 – 04:52 (4 hours, ~240 points) |
 
-All dependencies are locked by the __root__ package-lock.json.
-
-Do __not__ create a separate lock file under server/.
-
-Before committing, ensure your changes have synced to the host.
-
-📊 __Service Overview__
-
-Backend (Express + GraphQL): exposes /api and /graphql
-
-Frontend (Vite + React): provides the UI
-
-InfluxDB: time-series storage
-
-Grafana: visualizes queries against InfluxDB
-
-📈 __Grafana Embedding__
-
-The frontend embeds Grafana panels via iframe.
-
-In Grafana, prepare dashboards with variables (recommended: bucket / measurement / field / tag). Copy the share URL and use it directly.
-
-If different visualization types need different panels, add variables like VITE_GRAFANA_PANEL_TIMESERIES_ID, VITE_GRAFANA_PANEL_STAT_ID, etc.
-
-If Grafana does not allow anonymous access, inject a login cookie at the reverse-proxy layer for the iframe, or use a minimally-privileged API Key instead.
-
-### 🔧 Grafana Authentication
-
-The backend communicates with Grafana via Basic Auth (`admin:admin`), pre-configured in `compose.influxdb.yaml`.
-
-`GRAFANA_TOKEN` is loaded from `devcontainer/.env` (see Step 2 above). If you wipe volumes (`docker compose down -v`), the token becomes invalid — recreate it via Grafana UI (Administration → Service Accounts → Add Token) and update the value in your `.env` file.
-
-✅ __FAQs__
-
-Port conflict (5173)
-
-If port 5173 is already taken on the host, Vite will switch to 5174 automatically. However, ports other than 5173 are disabled here, so close the process that occupies 5173.
+Upload additional CSVs with different measurements/fields to test cross-measurement queries.

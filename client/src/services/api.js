@@ -42,7 +42,7 @@ export async function fetchFields(bucketId, measurement) {
 }
 
 // Fetch Tag Keys
-export async function fetchTagKeys(bucketId, measurement, start = '-30d') {
+export async function fetchTagKeys(bucketId, measurement, start = '-365d') {
   if (!bucketId) throw new Error('bucketId missing');
   const p = new URLSearchParams({ bucketId, start });
   if (measurement) p.set('measurement', measurement);
@@ -54,7 +54,7 @@ export async function fetchTagKeys(bucketId, measurement, start = '-30d') {
 }
 
 // Fetch all values for a given Tag Key (optionally filtered by measurement / field)
-export async function fetchTagValues(bucketId, tag, { measurement, field, start = '-30d', filters = [] } = {}) {
+export async function fetchTagValues(bucketId, tag, { measurement, field, start = '-365d', filters = [] } = {}) {
   if (!bucketId || !tag) throw new Error('bucketId/tag missing');
   const p = new URLSearchParams({ bucketId, tag, start });
   if (measurement) p.set('measurement', measurement);

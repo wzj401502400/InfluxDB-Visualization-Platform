@@ -322,14 +322,14 @@ async function resolveBucket({ influxUrl, token, bucketId, bucketName, org }) {
 router.get('/measurements', requireAuth, async (req, res) => {
   try {
     const { influxUrl, token } = req.auth;
-    const { bucketId, bucket: bucketName, org, format } = req.query || {};
+    const { bucketId, bucket: bucketName, org, format, start } = req.query || {};
 
     // Resolve bucket and org (frontend doesn't need to pass org)
     const { bucketName: bn, orgID } = await resolveBucket({ influxUrl, token, bucketId, bucketName, org });
 
     const flux = `
 import "influxdata/influxdb/schema"
-schema.measurements(bucket: "${escapeFluxString(bn)}")
+schema.measurements(bucket: "${escapeFluxString(bn)}", start: ${start || '-365d'})
 `.trim();
 
     const list = await runFluxReturnValuesArray({
@@ -381,9 +381,9 @@ schema.fieldKeys(bucket: "${escapeFluxString(bn)}")
       fields = await runFluxReturnValuesArray({ influxUrl, token, org: orgID, flux: flux2, accept });
     }
 
-    // 3) Last resort: data path (optional start, default -30d; use -100y for broader coverage)
+    // 3) Last resort: data path (optional start, default -365d; use -100y for broader coverage)
     if (!fields.length) {
-      const win = String(start || '-30d'); // Consider changing default to -100y for safety
+      const win = String(start || '-365d');
       const flux3 = `
 from(bucket: "${escapeFluxString(bn)}")
   |> range(start: ${win})
@@ -419,7 +419,7 @@ router.get('/tag-keys', requireAuth, async (req, res) => {
     const pred = measurement ? `(r) => r._measurement == "${escapeFluxString(measurement)}"` : '';
     const flux = `
 import "influxdata/influxdb/schema"
-schema.tagKeys(bucket: "${escapeFluxString(bn)}"${pred ? `, predicate: ${pred}` : ''}, start: ${start || '-30d'})
+schema.tagKeys(bucket: "${escapeFluxString(bn)}"${pred ? `, predicate: ${pred}` : ''}, start: ${start || '-365d'})
 `.trim();
 
     const list = await runFluxReturnValuesArray({
@@ -473,7 +473,7 @@ router.get('/tag-values', requireAuth, async (req, res) => {
 
     const flux = `
 import "influxdata/influxdb/schema"
-schema.tagValues(bucket: "${escapeFluxString(bn)}", tag: "${escapeFluxString(tag)}"${pred ? `, predicate: ${pred}` : ''}, start: ${start || '-30d'})
+schema.tagValues(bucket: "${escapeFluxString(bn)}", tag: "${escapeFluxString(tag)}"${pred ? `, predicate: ${pred}` : ''}, start: ${start || '-365d'})
 `.trim();
 
     const list = await runFluxReturnValuesArray({
@@ -639,13 +639,17 @@ router.post('/create-filtered-dashboard', async (req, res) => {
       visualizationType = 'timeseries',
       timeRange = '-24h',
       aggregateWindow = '30m',
+      aggregateFunction = 'mean',
+      groupBy = [],
       // Cross-measurement query parameters
       isCrossMeasurement,
       customFlux,
       fields,
       measurements,
       // Custom dashboard title
-      customTitle
+      customTitle,
+      // Stable instance ID for overwrite
+      instanceId
     } = req.body;
 
     console.log('=== Dynamic Dashboard Request ===');
@@ -670,6 +674,10 @@ router.post('/create-filtered-dashboard', async (req, res) => {
         return res.status(400).json({ error: 'measurement and field are required for single measurement queries' });
       }
     }
+
+    // Validate aggregateFunction to prevent injection
+    const allowedAggregateFunctions = ['mean', 'sum', 'max', 'min', 'count', 'last', 'first', 'median', 'spread'];
+    const safeFn = allowedAggregateFunctions.includes(aggregateFunction) ? aggregateFunction : 'mean';
 
     // Build Flux query
     let fluxQuery;
@@ -708,17 +716,27 @@ router.post('/create-filtered-dashboard', async (req, res) => {
 
       // Add aggregation
       if (visualizationType === 'timeseries') {
-        fluxQuery += `\n  |> aggregateWindow(every: ${aggregateWindow}, fn: mean, createEmpty: false)\n  |> yield(name: "mean")`;
+        fluxQuery += `\n  |> aggregateWindow(every: ${aggregateWindow}, fn: ${safeFn}, createEmpty: false)\n  |> yield(name: "${safeFn}")`;
       } else if (visualizationType === 'stat' || visualizationType === 'gauge') {
-        fluxQuery += `\n  |> aggregateWindow(every: ${aggregateWindow}, fn: mean, createEmpty: false)\n  |> last()`;
+        fluxQuery += `\n  |> aggregateWindow(every: ${aggregateWindow}, fn: ${safeFn}, createEmpty: false)\n  |> last()`;
       } else if (visualizationType === 'table') {
-        fluxQuery += `\n  |> aggregateWindow(every: ${aggregateWindow}, fn: mean, createEmpty: false)\n  |> limit(n: 100)`;
+        fluxQuery += `\n  |> aggregateWindow(every: ${aggregateWindow}, fn: ${safeFn}, createEmpty: false)\n  |> limit(n: 100)`;
+      }
+
+      // Add group by
+      if (Array.isArray(groupBy) && groupBy.length > 0) {
+        // Validate groupBy column names (alphanumeric and underscore only)
+        const safeGroupBy = groupBy.filter(col => /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(col));
+        if (safeGroupBy.length > 0) {
+          fluxQuery += `\n  |> group(columns: [${safeGroupBy.map(col => `"${col}"`).join(', ')}], mode: "by")`;
+        }
       }
     }
 
-    // Generate unique dashboard ID and title
-    const timestamp = Date.now();
-    const dashboardUid = `filtered-${visualizationType}-${timestamp}`;
+    // Use stable dashboardUid based on instanceId so re-submit overwrites
+    const dashboardUid = instanceId
+      ? `filtered-${instanceId}`
+      : `filtered-${visualizationType}-${Date.now()}`;
 
     let dashboardTitle, panelTitle;
 

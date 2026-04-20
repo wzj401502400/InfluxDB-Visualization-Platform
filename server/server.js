@@ -67,13 +67,14 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server:   http://localhost:${PORT}`);
-  console.log(`✅ GraphQL:  http://localhost:${PORT}/graphql`);
-  console.log(`✅ Health:   http://localhost:${PORT}/healthz`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server:   http://localhost:${PORT}`);
+    console.log(`✅ GraphQL:  http://localhost:${PORT}/graphql`);
+    console.log(`✅ Health:   http://localhost:${PORT}/healthz`);
+  });
+}
 
-// Optional: export app for integration testing
-//export default app;
+export default app;
 
 

@@ -71,7 +71,7 @@ export async function runFlux(sess, flux, { org, prefer='json' } = {}) {
 
 // ========== 2) Schema metadata (used for tag filtering) ==========
 // Note: these all use runFlux to call schema.* and extract the _value column
-export async function listMeasurements(sess, { bucket, start='-30d' }) {
+export async function listMeasurements(sess, { bucket, start='-365d' }) {
   const flux = `
 import "influxdata/influxdb/schema"
 schema.measurements(bucket: "${esc(bucket)}", start: ${start})
@@ -80,7 +80,7 @@ schema.measurements(bucket: "${esc(bucket)}", start: ${start})
   return [...new Set(rows.map(r => r._value).filter(Boolean))];
 }
 
-export async function listFieldKeys(sess, { bucket, measurement, start='-30d' }) {
+export async function listFieldKeys(sess, { bucket, measurement, start='-365d' }) {
   const pred = measurement ? `(r) => r._measurement == "${esc(measurement)}"` : '';
   const flux = `
 import "influxdata/influxdb/schema"
@@ -90,7 +90,7 @@ schema.fieldKeys(bucket: "${esc(bucket)}"${pred ? `, predicate: ${pred}` : ''}, 
   return [...new Set(rows.map(r => r._value).filter(Boolean))];
 }
 
-export async function listTagKeys(sess, { bucket, measurement, start='-30d' }) {
+export async function listTagKeys(sess, { bucket, measurement, start='-365d' }) {
   const pred = measurement ? `(r) => r._measurement == "${esc(measurement)}"` : '';
   const flux = `
 import "influxdata/influxdb/schema"
@@ -100,7 +100,7 @@ schema.tagKeys(bucket: "${esc(bucket)}"${pred ? `, predicate: ${pred}` : ''}, st
   return [...new Set(rows.map(r => r._value).filter(Boolean))];
 }
 
-export async function listTagValues(sess, { bucket, tag, measurement, field, start='-30d' }) {
+export async function listTagValues(sess, { bucket, tag, measurement, field, start='-365d' }) {
   const pieces = [];
   if (measurement) pieces.push(`r._measurement == "${esc(measurement)}"`);
   if (field)       pieces.push(`r._field == "${esc(field)}"`);

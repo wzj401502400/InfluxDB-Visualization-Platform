@@ -170,7 +170,7 @@ function TreeNode({ node, level = 0, onDragStart, expandedNodes, onToggle }) {
 
 
 /* ============ Tag Value Selector Component ============ */
-function TagValueSelector({ tagName, tagKey, buckets, onValueChange, selectedValue }) {
+function TagValueSelector({ tagName, tagKey, buckets, measurement, onValueChange, selectedValue }) {
   const [availableValues, setAvailableValues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -197,7 +197,8 @@ function TagValueSelector({ tagName, tagKey, buckets, onValueChange, selectedVal
         // Try to get tag values from the first bucket
         const bucketId = buckets[0].id;
         const values = await fetchTagValues(bucketId, tagKey, {
-          start: '-30d'
+          measurement,
+          start: '-365d'
         });
         setAvailableValues(values || []);
       } catch (error) {
@@ -209,7 +210,7 @@ function TagValueSelector({ tagName, tagKey, buckets, onValueChange, selectedVal
     };
 
     loadTagValues();
-  }, [tagKey, buckets]);
+  }, [tagKey, buckets, measurement]);
 
   if (loading) {
     return (
@@ -293,7 +294,7 @@ function SavedHierarchyQueryForm({ savedHierarchy, buckets, hierarchyQuerySelect
   const [selectedFields, setSelectedFields] = useState([]);
   const [tagFilters, setTagFilters] = useState({});
   const [localFluxText, setLocalFluxText] = useState('');
-  const [localRange, setLocalRange] = useState(range || '-1h');
+  const [localRange, setLocalRange] = useState(range || '-365d');
   const [copied, setCopied] = useState(false);
   const [aggregateFunction, setAggregateFunction] = useState('mean');
 
@@ -566,7 +567,8 @@ ${queries.map(query => `  (${query})`).join(',\n')}
               visualizationType: hierarchyVisualizationType || 'timeseries',
               isCrossMeasurement: true,
               flux: flux, // Pass the generated Flux query
-              measurements: Array.from(fieldsByMeasurement.keys())
+              measurements: Array.from(fieldsByMeasurement.keys()),
+              aggregateFunction: aggregateFunction
             });
           } else {
             // Single measurement query
@@ -578,7 +580,8 @@ ${queries.map(query => `  (${query})`).join(',\n')}
               selectedTags: selectedTags,
               range: localRange,
               bucketName: bucketName,
-              visualizationType: hierarchyVisualizationType || 'timeseries'
+              visualizationType: hierarchyVisualizationType || 'timeseries',
+              aggregateFunction: aggregateFunction
             });
           }
         }
@@ -623,6 +626,7 @@ ${queries.map(query => `  (${query})`).join(',\n')}
                 tagName={tag.name}
                 tagKey={tag.tagKey}
                 buckets={buckets}
+                measurement={hierarchyInfo.measurement?.name}
                 onValueChange={(value) => {
                   setTagFilters({
                     ...tagFilters,
@@ -686,7 +690,9 @@ ${queries.map(query => `  (${query})`).join(',\n')}
             { value: "-2d", label: "Last 2 days" },
             { value: "-7d", label: "Last 7 days" },
             { value: "-30d", label: "Last 30 days" },
-            { value: "-90d", label: "Last 90 days" }
+            { value: "-90d", label: "Last 90 days" },
+            { value: "-180d", label: "Last 180 days" },
+            { value: "-365d", label: "Last 365 days" }
           ]}
           placeholder="Select time range"
         />
@@ -2862,7 +2868,9 @@ function GrafanaPanel({
   measurements,
   onVisualizationTypeChange,
   instanceId = 'default',
-  panelLabel = 'Grafana Dashboard'
+  panelLabel = 'Grafana Dashboard',
+  aggregateFunction = 'mean',
+  groupBy = []
 }) {
   const [dynamicDashboardUrl, setDynamicDashboardUrl] = useState('');
   const [isDynamicDashboard, setIsDynamicDashboard] = useState(false);
@@ -3086,8 +3094,8 @@ function GrafanaPanel({
 
   // Create a stable iframe key that only changes when necessary
   const iframeKey = useMemo(() => {
-    return `iframe-${measurement || 'cross'}-${selectedFieldsKey}-${activeFiltersKey}-${visualizationType}-${range}`;
-  }, [measurement, selectedFieldsKey, activeFiltersKey, visualizationType, range]);
+    return `iframe-${measurement || 'cross'}-${selectedFieldsKey}-${activeFiltersKey}-${visualizationType}-${range}-${aggregateFunction}-${groupBy?.join(',') || ''}`;
+  }, [measurement, selectedFieldsKey, activeFiltersKey, visualizationType, range, aggregateFunction, groupBy]);
 
   // Function to create a dynamic dashboard
   const createDynamicDashboard = async () => {
@@ -3115,7 +3123,10 @@ function GrafanaPanel({
           visualizationType: visualizationType || 'timeseries',
           timeRange: range,
           aggregateWindow: getAggregateWindow(range),
-          customTitle
+          aggregateFunction: aggregateFunction || 'mean',
+          groupBy: groupBy || [],
+          customTitle,
+          instanceId
         };
       } else {
         // Single measurement query
@@ -3129,7 +3140,10 @@ function GrafanaPanel({
           visualizationType: visualizationType || 'timeseries',
           timeRange: range,
           aggregateWindow: getAggregateWindow(range),
-          customTitle
+          aggregateFunction: aggregateFunction || 'mean',
+          groupBy: groupBy || [],
+          customTitle,
+          instanceId
         };
       }
 
@@ -3182,7 +3196,9 @@ function GrafanaPanel({
     customFlux,
     measurementsKey,
     displayTitle,
-    isEditingTitle
+    isEditingTitle,
+    aggregateFunction,
+    groupBy
   ]);
 
   // Debug info
@@ -3428,13 +3444,10 @@ function GrafanaPanel({
 }
 
 /* ============ Main Workbench Grid ============ */
-function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bucketName, visualizationType, setVisualizationType, showFlux, fluxText, onCloseFlux, activeModule, customHierarchy, onUpdateHierarchy, treeData, buckets, selectedHierarchyNode, setSelectedHierarchyNode, hierarchyFluxText, setHierarchyFluxText, hierarchyVisualizationType, setHierarchyVisualizationType, showFluxInWorkbench, setShowFluxInWorkbench, savedHierarchyDefinition, setSavedHierarchyDefinition, hierarchyQuerySelection, setHierarchyQuerySelection, activeHierarchyTab, setActiveHierarchyTab, isCustomHierarchyCollapsed, setIsCustomHierarchyCollapsed, isSavedHierarchyCollapsed, setIsSavedHierarchyCollapsed }) {
+function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bucketName, visualizationType, setVisualizationType, showFlux, fluxText, onCloseFlux, activeModule, customHierarchy, onUpdateHierarchy, treeData, buckets, selectedHierarchyNode, setSelectedHierarchyNode, hierarchyFluxText, setHierarchyFluxText, hierarchyVisualizationType, setHierarchyVisualizationType, showFluxInWorkbench, setShowFluxInWorkbench, savedHierarchyDefinition, setSavedHierarchyDefinition, hierarchyQuerySelection, setHierarchyQuerySelection, activeHierarchyTab, setActiveHierarchyTab, isCustomHierarchyCollapsed, setIsCustomHierarchyCollapsed, isSavedHierarchyCollapsed, setIsSavedHierarchyCollapsed, aggregateFunction, groupBy }) {
   const [copySuccess, setCopySuccess] = useState(false);
   const [isVizDropdownOpen, setIsVizDropdownOpen] = useState(false);
   const vizDropdownRef = useRef(null);
-
-  // Add default aggregateFunction
-  const aggregateFunction = 'mean';
 
   // Hierarchy-specific visualization dropdown state
   const [isHierarchyVizDropdownOpen, setIsHierarchyVizDropdownOpen] = useState(false);
@@ -3693,6 +3706,8 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
               measurements={hierarchyQuerySelection?.measurements}
               onVisualizationTypeChange={setHierarchyVisualizationType}
               instanceId="hierarchy"
+              aggregateFunction={hierarchyQuerySelection?.aggregateFunction || aggregateFunction}
+              groupBy={hierarchyQuerySelection?.groupBy || []}
             />
             </div>
             ) : (
@@ -3784,6 +3799,8 @@ function Workbench({ selectedMeasurement, selectedField, selectedTags, range, bu
               bucketName={bucketName}
               onVisualizationTypeChange={setVisualizationType}
               instanceId="explorer"
+              aggregateFunction={aggregateFunction}
+              groupBy={groupBy}
             />
           </div>
 
@@ -4453,7 +4470,7 @@ export default function App() {
           tags,
           range,
           groupBy: groupBy.length > 0 ? groupBy : [], // Only pass group when user has selected
-          aggregate: { every: getAggregateWindow(range), fn: 'mean' }
+          aggregate: { every: getAggregateWindow(range), fn: aggregateFunction }
         });
 
         // Simplified Flux query builder (for display)
@@ -4487,7 +4504,7 @@ export default function App() {
           simpleFlux += `\n  |> group(columns: [${groupBy.map(col => `"${col}"`).join(', ')}], mode: "by")`;
         }
 
-        simpleFlux += `\n  |> yield(name: "mean")`;
+        simpleFlux += `\n  |> yield(name: "${aggregateFunction}")`;
 
         setFluxText(simpleFlux);
       } catch (e) {
@@ -4496,7 +4513,7 @@ export default function App() {
     } else {
       setFluxText('');
     }
-  }, [activeBucketName, selectedMeasurement, selectedField, selectedTags, range, groupBy]);
+  }, [activeBucketName, selectedMeasurement, selectedField, selectedTags, range, groupBy, aggregateFunction]);
 
   // Tree module drag handler functions
   const handleDragStart = (e, node) => {
@@ -4539,7 +4556,7 @@ export default function App() {
         tags,
         range,
         groupBy: groupBy.length > 0 ? groupBy : [], // Only pass group when user has selected
-        aggregate: { every: getAggregateWindow(range), fn: 'mean' }  // Dynamically adjust aggregate window
+        aggregate: { every: getAggregateWindow(range), fn: aggregateFunction }  // Dynamically adjust aggregate window
       });
       const { flux, rows } = await runQuerySpec({ bucketId: activeBucketId, spec });
       setFluxText(sanitizeFlux(flux));
@@ -4814,6 +4831,8 @@ export default function App() {
               setIsCustomHierarchyCollapsed={setIsCustomHierarchyCollapsed}
               isSavedHierarchyCollapsed={isSavedHierarchyCollapsed}
               setIsSavedHierarchyCollapsed={setIsSavedHierarchyCollapsed}
+              aggregateFunction={aggregateFunction}
+              groupBy={groupBy}
             />
           </div>
         </section>
